@@ -37,7 +37,7 @@ function ProcessingNodeClient() {
 		m_process_database.setDataFilePath(m_node_path+'/_WISDM/data_files');
 
 		setTimeout(function() {
-			var database_name='node1'; //change node1 to node name
+			var database_name=m_processing_node_id; //change node1 to node name
 			console.log ('Connecting to database: '+database_name);
 			m_process_database.connect({database:database_name},function(tmp1) { 
 				if (!tmp1.success) {
