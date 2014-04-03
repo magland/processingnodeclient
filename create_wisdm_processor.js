@@ -19,6 +19,7 @@ function create_wisdm_processor_octave(params) {
 	var input_parameters=params.input_parameters||{};
 	var input_files=params.input_files||{};
 	var output_files=params.output_files||{};
+	var the_requires=params.requires||[];
 	var matlab_mode=(params.processor_type=='matlab');
 	
 	var main_sh='';
@@ -89,7 +90,6 @@ function create_wisdm_processor_octave(params) {
 	custom_script_m+=params.code;
 	custom_script_m+="\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n";
 	
-	
 	for (var output_file_name in output_files) {
 		var output_file=output_files[output_file_name];
 		
@@ -138,8 +138,6 @@ function create_wisdm_processor_octave(params) {
 	custom_script_m+="fclose(fid000);\n";
 	custom_script_m+="end\n\n";
 	
-	
-	
 	var processor_files=[];
 	processor_files.push({path:'main.sh',content:main_sh});
 	processor_files.push({path:'custom_script.m',content:custom_script_m});
@@ -148,6 +146,9 @@ function create_wisdm_processor_octave(params) {
 	files.forEach(function(file) {
 		var txt0=fs.readFileSync(path0+'/'+file,'utf8');
 		processor_files.push({path:file,content:txt0});
+	});
+	the_requires.forEach(function(the_require) {
+		processor_files.push({path:the_require.path,content:the_require.content});
 	});
 	
 	var tmp000=common.extend(true,{},params); //the id will depend on the params
