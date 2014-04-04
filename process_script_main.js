@@ -1,6 +1,7 @@
 var run=require('./custom_script').run;
 var create_wisdm_processor=require('./create_wisdm_processor').create_wisdm_processor;
 var internal_functions=require('./custom_script').internal_functions;
+var common=require('./common').common;
 
 internal_functions.submitProcess=submitProcess;
 //internal_functions.getProcessingStatus=getProcessingStatus;
@@ -11,12 +12,14 @@ var script_id=script_info.script_id;
 var user_id=script_info.user_id;
 
 var WISDM_SUBMITTED_PROCESSES={};
+var WISDM_SUBMITTED_PROCESS_LIST=[]; //so we can keep track of the order of submission
 
 try {
 	run();
 }
 catch(err) {
-	throw err;
+	console.error(err);
+	return;
 }
 
 var num_processes=0;
@@ -33,10 +36,21 @@ add_script_to_database(function(tmp0) {
 			console.error('Problem submitting processes: '+tmp.error);
 		}
 		else {
-			console.log ('Done submitting processes.');
+			finalize_and_write_submitted_processes(tmp.previous_statuses);
 		}
 	});
 });
+
+function finalize_and_write_submitted_processes(previous_statuses) {
+	console.log ('Writing output...');
+	WISDM_SUBMITTED_PROCESS_LIST.forEach(function(PP) {
+		if (PP.process_id in previous_statuses) {
+			PP.previous_status=previous_statuses[PP.process_id];
+		}
+	});
+	common.write_text_file(__dirname+'/wisdm_submitted_processes.json',JSON.stringify(WISDM_SUBMITTED_PROCESS_LIST));
+	console.log ('Done submitting processes.');
+}
 
 ///////////////////////////////////////////////
 
@@ -121,6 +135,10 @@ function submitProcess(process) {
 	
 	process.process_id=create_process_id(process);
 	WISDM_SUBMITTED_PROCESSES[process.process_id]=process;
+	WISDM_SUBMITTED_PROCESS_LIST.push({
+		process_id:process.process_id,
+		processor_name:(process.processor||{}).processor_name
+	});
 	
 	var processor=process.processor||{};
 	var output_files=processor.output_files||{};

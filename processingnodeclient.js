@@ -238,7 +238,17 @@ function ProcessingNodeClient() {
 			//remove_file(request,callback);
 		}
 		else if (command=='submitScript') {
-			submit_script(m_node_path,request,callback);
+			submit_script(m_node_path,request,function(tmp01) {
+				if (!tmp01.success) {callback(tmp01); return;}
+				if (!m_process_database) {
+					callback({success:false,error:'Unexpected: process database is null.'});
+					return;
+				}
+				m_process_database.setScriptOutput(tmp01,function(tmp2) {
+					if (!tmp2.success) {callback({success:false,error:'Problem setting script output: '+tmp2.error}); return;}
+					callback(tmp01);
+				});
+			});
 		}
 		else if (command=='getProcessingSummary') {
 			get_processing_summary(request,callback);

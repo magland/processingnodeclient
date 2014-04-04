@@ -7,6 +7,9 @@ function submit_script(node_path,request,callback) {
 		callback({success:false,error:'user_id missing in request of submit_script'});
 		return;
 	}
+	
+	var script_id=common.make_random_id(10);
+	
 	var scripts=request.scripts||{};
 	var code='';
 	for (var key in scripts) {
@@ -27,7 +30,6 @@ function submit_script(node_path,request,callback) {
 	function write_temporary_script(code,params,callback2) {
 		var custom_code=code;
 		
-		var script_id=common.make_random_id(10);
 		common.create_path(node_path+'/_WISDM/scripts/'+script_id,node_path,function(tmp1) {
 			if (!tmp1.success) {
 				callback2(tmp1);
@@ -159,7 +161,21 @@ function submit_script(node_path,request,callback) {
 		
 		process.on('close', function (code) {
 			output+='Process exited with code ' + code;
-			callback3({success:true,output:output});
+			common.read_text_file(common.get_file_path(fname)+'/wisdm_submitted_processes.json',function(tmp1) {
+				if (!tmp1.success) {
+					callback3({success:false,error:'Unexpected problem: Unable to read wisdm_submitted_processes.json',output:output});
+					return;
+				}
+				var submitted_processes;
+				try {
+					submitted_processes=JSON.parse(tmp1.text);
+				}
+				catch(err) {
+					callback({success:false,error:'Unexpected problem parsing submitted processes'});
+					return;
+				}
+				callback3({success:true,output:output,submitted_processes:submitted_processes,script_id:script_id});
+			});
 		});
 	}
 	

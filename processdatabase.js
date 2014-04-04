@@ -17,6 +17,7 @@ function ProcessDatabase() {
 	this.getProcessRecord=function(process_id,fields,callback) {_getProcessRecord(process_id,fields,callback);};
 	this.getProcessRecords=function(query,fields,callback) {_getProcessRecords(query,fields,callback);};
 	this.addScriptRecord=function(record,callback) {_addScriptRecord(record,callback);};
+	this.setScriptOutput=function(output,callback) {_setScriptOutput(output,callback);};
 	this.find=function(collection,query,fields,callback) {_find(collection,query,fields,callback);};
 	this.remove=function(collection,selector,callback) {_remove(collection,selector,callback);};
 	
@@ -164,12 +165,29 @@ function ProcessDatabase() {
 		});
 	}
 	
+	function _setScriptOutput(output,callback) {
+		if (!m_db) {
+			if (callback) callback({success:false,error:'Not connected to database.'});
+			return;
+		}
+		var script_collection=m_db.collection('scripts');
+		
+		script_collection.update({_id:output.script_id},{$set:{output:output.output,submitted_processes:output.submitted_processes}},function(err) {
+			if (err) {
+				if (callback) callback({success:false,error:'Problem setting script output: '+err});
+				return;
+			}
+			if (callback) callback({success:true});
+		});
+	}
+	
 	function _addProcesses(processes,params,callback) {
 		if (!m_db) {
 			if (callback) callback({success:false,error:'Not connected to database.'});
 			return;
 		}
 		
+		var previous_statuses={};
 		var process_docs_to_save=[];
 		var processor_docs_to_save=[];
 		var processor_ids_to_save={};
@@ -234,6 +252,7 @@ function ProcessDatabase() {
 						else {
 							var status0=matching_docs[0].status||'';
 							if ((status0=='pending')||(status0=='queued')||(status0=='running')||(status0=='finished')) {
+								previous_statuses[doc._id]=status0;
 								cb({success:true});
 							}
 							else {
@@ -247,9 +266,11 @@ function ProcessDatabase() {
 							}
 						}
 					});
-				},callback,5);
+				},function() {
+					callback({success:true,previous_statuses:previous_statuses});
+				},5);
 			}
-			else callback({success:true});
+			else callback({success:true,previous_statuses:previous_statuses});
 		}
 	}
 	

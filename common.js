@@ -73,9 +73,11 @@ common.read_text_file=function(path,callback) {
 common.write_text_file=function(path,text,callback) {
 	fs.writeFile(path,text,function(err) {
 		if (err) {
-			callback({success:false,error:JSON.stringify(err)});
+			if (callback) callback({success:false,error:JSON.stringify(err)});
 		}
-		else callback({success:true});
+		else {
+			if (callback) callback({success:true});
+		}
 	});
 };
 
@@ -252,5 +254,33 @@ common.for_each_async=function(list,func,callback,max_simultaneous) {
 		});
 	}
 };
+common.get_file_suffix=function(str) {
+	if (!str) return '';
+	var ind=str.lastIndexOf('.');
+	if (ind>=0) return str.substr(ind+1);
+	else return '';
+};
+common.get_file_name=function(str) {
+	if (!str) return '';
+	var ind=str.lastIndexOf('/');
+	if (ind>=0) return str.substr(ind+1);
+	else return str;
+};
+common.get_file_name_without_suffix=function(str) {
+	if (!str) return '';
+	var ret=str;
+	var ind=ret.lastIndexOf('/');
+	if (ind>=0) ret=ret.substr(ind+1);
+	var ind2=ret.lastIndexOf('.');
+	if (ind2>=0) ret=ret.substr(0,ind2);
+	return ret;
+};
+common.get_file_path=function(str) {
+	if (!str) return '';
+	var ind=str.lastIndexOf('/');
+	if (ind>=0) return str.substr(0,ind);
+	else return '';
+};
+
 
 exports.common=common;
