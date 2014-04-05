@@ -32,9 +32,6 @@ function ProcessingNodeClient() {
 	
 	function initialize_process_database_2(callback) {
 		m_process_database=new ProcessDatabase();
-		common.mkdir(m_node_path+'/_WISDM/working_processes');
-		common.mkdir(m_node_path+'/_WISDM/working_processors');
-		common.mkdir(m_node_path+'/_WISDM/data_files');
 		m_process_database.setProcessWorkingPath(m_node_path+'/_WISDM/working_processes');
 		m_process_database.setProcessorWorkingPath(m_node_path+'/_WISDM/working_processors');
 		m_process_database.setDataFilePath(m_node_path+'/_WISDM/data_files');
