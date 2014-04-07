@@ -45,6 +45,11 @@ forever --version >/dev/null 2>&1 || {
 OUTPUT=$(forever --version)
 echo "forever installed: $OUTPUT"
 
+echo ""
+echo ""
+echo "TESTING PROCESSING NODE CLIENT"
+forever stopall
+OUTPUT=$(node src/processingnodeclient.js --testconnection)
 
 echo ""
 echo ""

@@ -12,15 +12,19 @@ function ProcessingNodeClient() {
 	
 	this.setProcessingNodeId=function(id) {m_processing_node_id=id;};
 	this.connectToServer=function(host,port,callback) {_connectToServer(host,port,callback);};
+	this.disconnectFromServer=function() {_disconnectFromServer();};
+	this.connectionAccepted=function() {return m_connection_accepted;};
 	this.isConnected=function() {if (m_socket) return true; else return false;};
 	this.setNodePath=function(path) {m_node_path=path;};
 	this.initializeProcessDatabase=function(callback) {initialize_process_database(callback);};
+	this.stopHandlingProcesses=function() {m_handling_processes=false;};
 	
 	var m_socket=null;
 	var m_processing_node_id=null;
-	var m_initialized=false;
+	var m_connection_accepted=false;
 	var m_node_path='';
 	var m_process_database=null;
+	var m_handling_processes=true;
 	
 	function initialize_process_database(callback) {
 		mkdirs([m_node_path+'/_WISDM'],function() {
@@ -58,13 +62,17 @@ function ProcessingNodeClient() {
 	
 	function periodic_handle_processes() {
 		if (!m_process_database) return;
+		if (!m_handling_processes) return;
 		m_process_database.handleProcesses(function(tmp) {
 			var timeout_ms=3000;
 			setTimeout(periodic_handle_processes,timeout_ms);
 		});
 	}
 	
-	
+	function _disconnectFromServer() {
+		if (!m_socket) return;
+		m_socket.disconnect();
+	}
 	function _connectToServer(host,port,callback) {
 		m_socket=new WisdmSocket();
 		console.log ('Connecting to '+host+' on port '+port);
@@ -89,14 +97,15 @@ function ProcessingNodeClient() {
 		});
 		m_socket.onClose(function() {
 			m_socket=null;
+			m_connection_accepted=false;
 		});
 	}
 	
 	function process_message_from_server(msg) {
-		if (!m_initialized) {
+		if (!m_connection_accepted) {
 			if (msg.command=='connection_accepted') {
 				console.log ('CONNECTION ACCEPTED');
-				m_initialized=true;
+				m_connection_accepted=true;
 			}
 			else {
 				console.error('Unexpected initial message from server: '+(msg.command||''));
@@ -492,8 +501,26 @@ setTimeout(function() {
 			}
 			else {
 				console.log ('Error connecting to server: '+tmp.error);
+				callback({success:false,error:'Error connecting to server: '+tmp.error});
+				return;
 			}
-			callback(tmp);
+			var timer=new Date();
+			function check_connected() {
+				if (CC.connectionAccepted()) {
+					callback({success:true});
+				}
+				else {
+					var elapsed=(new Date())-timer;
+					if (elapsed>5000) {
+						callback({success:false,error:'Timeout while waiting for connection to be accepted.'});
+						return;
+					}
+					else {
+						setTimeout(check_connected,500);
+					}
+				}
+			}
+			setTimeout(check_connected,500);
 		});
 	}
 	function periodical_connect_to_server() {
@@ -506,8 +533,27 @@ setTimeout(function() {
 			setTimeout(periodical_connect_to_server,5000);
 		}
 	}
-	setTimeout(periodical_connect_to_server,500);
-},1000);
+	if (process.argv.indexOf('--testconnection')>=0) {
+		do_connect_to_server(function(tmp) {
+			if (tmp.success) {
+				console.log ('CONNECTION SUCCESSFUL');
+			}
+			else {
+				console.error('Problem connecting to server: '+tmp.error);
+			}
+			CC.disconnectFromServer();
+			CC.stopHandlingProcesses();
+			setTimeout(function() {
+				if (tmp.success) process.exit(12);
+				else process.exit(0);
+			},1000);
+			return;
+		});
+	}
+	else {
+		setTimeout(periodical_connect_to_server,100);
+	}
+},100);
 
 
 
