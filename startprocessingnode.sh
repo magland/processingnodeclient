@@ -37,6 +37,10 @@ octave --version >/dev/null 2>&1 || {
 OUTPUT=$(octave --version | sed -n 1p)
 echo "octave installed: $OUTPUT"
 
+echo "Setting paths..."
+export PATH=$PATH:$HOME/nodejs/bin
+export NODE_PATH=$HOME/nodejs/lib/node_modules
+
 echo "Checking to see if forever is installed..."
 forever --version >/dev/null 2>&1 || { 
 	echo "forever (node.js package) is not installed. Please see the INSTALL folder to install the required packages.";
