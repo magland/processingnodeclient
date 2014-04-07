@@ -3,9 +3,9 @@
 var wisdmconfig={};
 
 wisdmconfig.processingnodeclient={
-	node_id:'node1',
-	node_path:'/home/magland/processing_nodes/node1',
-	server_host:'localhost',
+	node_id:'peregrineXX',
+	node_path:'/home/magland/wisdm/peregrineXX',
+	server_host:'wisdmhub.org',
 	server_port:8082
 };
 
