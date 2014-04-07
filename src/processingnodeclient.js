@@ -18,6 +18,7 @@ function ProcessingNodeClient() {
 	this.setNodePath=function(path) {m_node_path=path;};
 	this.initializeProcessDatabase=function(callback) {initialize_process_database(callback);};
 	this.stopHandlingProcesses=function() {m_handling_processes=false;};
+	this.checkPaths=function(callback) {_checkPaths(callback);};
 	
 	var m_socket=null;
 	var m_processing_node_id=null;
@@ -98,6 +99,27 @@ function ProcessingNodeClient() {
 		m_socket.onClose(function() {
 			m_socket=null;
 			m_connection_accepted=false;
+		});
+	}
+	function _checkPaths(callback) {
+		common.mkdir(m_node_path,function(tmpA) {
+			fs.exists(m_node_path,function(exists0) {
+				if (!exists0) {
+					callback({success:false,error:'Node path does not exist: '+m_node_path});
+					return;
+				}
+				fs.stat(m_node_path,function(err,stat) {
+					if (err) {
+						callback({success:false,error:'Error in stat: '+err});
+						return;
+					}
+					if (!stat.isDirectory()) {
+						callback({success:false,error:'Node path is not a directory.'});
+						return;
+					}
+					callback({success:true});
+				});
+			});
 		});
 	}
 	
@@ -467,15 +489,8 @@ function ProcessingNodeClient() {
 			callback({success:true,folders:tmp.dirs});
 		});
 	}
-	*/
-	
-	
-	
+	*/	
 }
-
-
-
-
 
 var wisdmconfig=require('./wisdmconfig').wisdmconfig;
 
@@ -487,11 +502,49 @@ setTimeout(function() {
 	CC.initializeProcessDatabase(function(tmp) {
 		if (tmp.success) {
 			console.log ('Process database initialized.');
+			step2();
+			
 		}
 		else {
 			console.log ('Error initializing process database: '+tmp.error);
+			process.exit(0);
+			return;
 		}
 	});
+	
+	function step2() {
+		CC.checkPaths(function(tmp) {
+			if (!tmp.success) {
+				console.error(tmp.error);
+				process.exit(0);
+			}
+			step3();
+		});
+	}
+	
+	function step3() {
+		if (process.argv.indexOf('--testconnection')>=0) {
+			do_connect_to_server(function(tmp) {
+				if (tmp.success) {
+					console.log ('CONNECTION SUCCESSFUL');
+				}
+				else {
+					console.error('Problem connecting to server: '+tmp.error);
+					process.exit(0);
+				}
+				CC.disconnectFromServer();
+				CC.stopHandlingProcesses();
+				setTimeout(function() {
+					if (tmp.success) process.exit(12);
+					else process.exit(0);
+				},1000);
+				return;
+			});
+		}
+		else {
+			setTimeout(periodical_connect_to_server,100);
+		}
+	}
 	
 	function do_connect_to_server(callback) {
 		console.log ('Connecting to server...');
@@ -533,26 +586,7 @@ setTimeout(function() {
 			setTimeout(periodical_connect_to_server,5000);
 		}
 	}
-	if (process.argv.indexOf('--testconnection')>=0) {
-		do_connect_to_server(function(tmp) {
-			if (tmp.success) {
-				console.log ('CONNECTION SUCCESSFUL');
-			}
-			else {
-				console.error('Problem connecting to server: '+tmp.error);
-			}
-			CC.disconnectFromServer();
-			CC.stopHandlingProcesses();
-			setTimeout(function() {
-				if (tmp.success) process.exit(12);
-				else process.exit(0);
-			},1000);
-			return;
-		});
-	}
-	else {
-		setTimeout(periodical_connect_to_server,100);
-	}
+	
 },100);
 
 
