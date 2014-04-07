@@ -49,10 +49,16 @@ echo ""
 echo ""
 echo "TESTING PROCESSING NODE CLIENT"
 forever stopall
-OUTPUT=$(node src/processingnodeclient.js --testconnection)
+node src/processingnodeclient.js --testconnection
+
+if [ $? -ne 12 ]; then
+	echo "Problem starting processing node client (see above for error messages). Exiting."
+	exit 0;
+fi
 
 echo ""
 echo ""
 echo "STARTING PROCESSING NODE CLIENT"
 forever stopall
 forever start -a -o out.log -e err.log src/processingnodeclient.js
+
