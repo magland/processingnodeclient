@@ -425,7 +425,7 @@ function ProcessingNodeClient() {
 			m_process_database.getProcessRecords({},{script_id:1,status:1},function(tmp00) {
 				var all_records=tmp00.records;
 				
-				var total_process_counts={pending:0,queued:0,running:0,finished:200,error:0};
+				var total_process_counts={pending:0,queued:0,running:0,finished:2000,error:0};
 				var process_counts_by_script={};
 				tmp00.records.forEach(function(record) {
 					var script_id=record.script_id||'';
