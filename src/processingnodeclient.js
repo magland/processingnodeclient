@@ -161,8 +161,6 @@ function ProcessingNodeClient() {
 	}
 	
 	function process_message_from_server(msg) {
-		console.log('process_message_from_server',JSON.stringify(msg));
-		
 		if (!m_connection_accepted) {
 			if (msg.command=='connection_accepted') {
 				console.log ('CONNECTION ACCEPTED');
