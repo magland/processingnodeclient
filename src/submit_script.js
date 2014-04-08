@@ -59,19 +59,16 @@ function submit_script(node_path,request,callback) {
 						'processdatabase.js','runningprocess.js','common.js'
 					];
 					var folders_to_copy=['octave'];
-					console.log('COPYING FILES to...',node_path+'/_WISDM/scripts/'+script_id);
 					copy_files(files_to_copy,__dirname,node_path+'/_WISDM/scripts/'+script_id,function(tmp05) {
 						if (!tmp05.success) {
 							callback2(tmp05);
 							return;
 						}
-						console.log('COPYING FOLDERS to...',node_path+'/_WISDM/scripts/'+script_id);
 						copy_folders(folders_to_copy,__dirname,node_path+'/_WISDM/scripts/'+script_id,function(tmp06) {
 							if (!tmp06.success) {
 								callback2(tmp06);
 								return;
 							}
-							console.log('Done copying.');
 							finalize_write_temporary_script();
 						});
 					});

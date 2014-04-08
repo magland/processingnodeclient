@@ -16,6 +16,7 @@ function ProcessDatabase() {
 	this.checkProcessesComplete=function(params,callback) {_checkProcessesComplete(params,callback);};
 	this.getProcessRecord=function(process_id,fields,callback) {_getProcessRecord(process_id,fields,callback);};
 	this.getProcessRecords=function(query,fields,callback) {_getProcessRecords(query,fields,callback);};
+	this.runningProcessCount=function() {var ret=0; for (var ppp in m_running_processes) {ret++;} return ret;};
 	this.addScriptRecord=function(record,callback) {_addScriptRecord(record,callback);};
 	this.setScriptOutput=function(output,callback) {_setScriptOutput(output,callback);};
 	this.find=function(collection,query,fields,callback) {_find(collection,query,fields,callback);};

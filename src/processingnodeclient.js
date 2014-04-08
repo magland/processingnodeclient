@@ -17,15 +17,20 @@ function ProcessingNodeClient() {
 	this.isConnected=function() {if (m_socket) return true; else return false;};
 	this.setNodePath=function(path) {m_node_path=path;};
 	this.initializeProcessDatabase=function(callback) {initialize_process_database(callback);};
-	this.stopHandlingProcesses=function() {m_handling_processes=false;};
+	this.setHandleProcesses=function(val) {m_handle_processes=val;};
 	this.checkPaths=function(callback) {_checkPaths(callback);};
+	this.onClose=function(callback) {m_close_handlers.push(callback);};
+	this.closeWhenReady=function() {m_close_when_ready=true;};
 	
 	var m_socket=null;
 	var m_processing_node_id=null;
 	var m_connection_accepted=false;
 	var m_node_path='';
 	var m_process_database=null;
-	var m_handling_processes=true;
+	var m_handle_processes=false;
+	var m_close_when_ready=false;
+	var m_close_handlers=[];
+	var m_last_action_timer=new Date();
 	
 	function initialize_process_database(callback) {
 		mkdirs([m_node_path+'/_WISDM'],function() {
@@ -63,11 +68,42 @@ function ProcessingNodeClient() {
 	
 	function periodic_handle_processes() {
 		if (!m_process_database) return;
-		if (!m_handling_processes) return;
+		if (!m_handle_processes) {
+			if (m_close_when_ready) {
+				do_close();
+				return;
+			}
+			setTimeout(periodic_handle_processes,1000);
+			return;
+		}
+		
 		m_process_database.handleProcesses(function(tmp) {
 			var timeout_ms=3000;
 			setTimeout(periodic_handle_processes,timeout_ms);
 		});
+	}
+	
+	function periodic_check() {
+		if (m_close_when_ready) {
+			var elapsed_since_last_action=(new Date())-m_last_action_timer;
+			if (elapsed_since_last_action>1000) {
+				if (m_process_database.runningProcessCount()===0) {
+					do_close();
+					return;
+				}
+			}
+		}
+		setTimeout(periodic_check,1000);
+	}
+	periodic_check();
+	
+	
+	function do_close() {
+		that.disconnectFromServer();
+		that.setHandleProcesses(false);
+		setTimeout(function() {
+			m_close_handlers.forEach(function(handler) {handler();});
+		},1000);
 	}
 	
 	function _disconnectFromServer() {
@@ -94,6 +130,7 @@ function ProcessingNodeClient() {
 			callback({success:true});
 		});
 		m_socket.onMessage(function(msg) {
+			m_last_action_timer=new Date();
 			process_message_from_server(msg);
 		});
 		m_socket.onClose(function() {
@@ -124,6 +161,8 @@ function ProcessingNodeClient() {
 	}
 	
 	function process_message_from_server(msg) {
+		console.log('process_message_from_server',JSON.stringify(msg));
+		
 		if (!m_connection_accepted) {
 			if (msg.command=='connection_accepted') {
 				console.log ('CONNECTION ACCEPTED');
@@ -238,6 +277,9 @@ function ProcessingNodeClient() {
 		}
 		
 		var command=request.command||'';
+		
+		console.log ('SERVER REQUEST: '+command);
+		
 		if (command=='getFileChecksum') {
 			get_file_for_request(request,function(tmp) {
 				if (!tmp.success) {callback(tmp); return;}
@@ -300,6 +342,14 @@ function ProcessingNodeClient() {
 					callback({success:true,data_base64:tmp1.data.toString('base64')});
 				});
 			});
+		}
+		else if (command=='updateProcessingNodeSource') {
+			var spawn=require('child_process').spawn;
+			var git_process=spawn('/usr/bin/git',['pull'],{cwd:common.get_file_path(__dirname),stdio:'inherit'});
+			git_process.on('close',function() {
+				that.closeWhenReady();
+			});
+			callback({success:true});
 		}
 		else {
 			callback({success:false,error:'Unrecognized or missing server request command: '+command});
@@ -495,7 +545,22 @@ function ProcessingNodeClient() {
 var wisdmconfig=require('./wisdmconfig').wisdmconfig;
 
 setTimeout(function() {
+	
+	var prescribed_timeout=0;
+	process.argv.forEach(function(arg0) {
+		if (arg0.indexOf('timeout=')===0) {
+			prescribed_timeout=Number(arg0.slice(('timeout=').length));
+		}
+	});
+	var process_timer=new Date();
+	console.log ('Prescribed timeout = '+prescribed_timeout);
+	
 	var CC=new ProcessingNodeClient();
+	CC.onClose(function() {
+		console.log ('Node client closed. exiting.');
+		process.exit(0);
+	});
+	
 	CC.setProcessingNodeId(wisdmconfig.processingnodeclient.node_id);
 	CC.setNodePath(wisdmconfig.processingnodeclient.node_path);
 	console.log ('Initializing process database...');
@@ -533,7 +598,6 @@ setTimeout(function() {
 					process.exit(0);
 				}
 				CC.disconnectFromServer();
-				CC.stopHandlingProcesses();
 				setTimeout(function() {
 					if (tmp.success) process.exit(12);
 					else process.exit(0);
@@ -542,6 +606,7 @@ setTimeout(function() {
 			});
 		}
 		else {
+			CC.setHandleProcesses(true);
 			setTimeout(periodical_connect_to_server,100);
 		}
 	}
@@ -577,6 +642,12 @@ setTimeout(function() {
 		});
 	}
 	function periodical_connect_to_server() {
+		if (prescribed_timeout>0) {
+			var elapsed=(new Date())-process_timer;
+			if (elapsed>prescribed_timeout) {
+				CC.closeWhenReady();
+			}
+		}
 		if (!CC.isConnected()) {
 			do_connect_to_server(function(tmp) {
 				setTimeout(periodical_connect_to_server,5000);

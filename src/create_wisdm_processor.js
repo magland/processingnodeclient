@@ -153,6 +153,7 @@ function create_wisdm_processor_octave(params) {
 	
 	var tmp000=common.extend(true,{},params); //the id will depend on the params
 	delete(tmp000.processor_name); //but don't let the id depend on the name!
+	delete(tmp000.processor_id); //and don't let it depend on the empty processor id field
 	
 	var processor={
 		processor_id:params.processor_id||compute_sha1(JSON.stringify(tmp000)),

@@ -64,5 +64,5 @@ echo ""
 echo ""
 echo "STARTING PROCESSING NODE CLIENT"
 forever stopall
-forever start -a -o out.log -e err.log src/processingnodeclient.js
+forever start -a -o out.log -e err.log src/run_processingnodeclient.js
 
