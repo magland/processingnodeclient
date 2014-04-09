@@ -41,3 +41,14 @@ if (det(transformation)==0)
 end;
 end
 
+function voxel_size=get_voxel_size_from_transformation(transformation) 
+p0=[0;0;0;1];
+p1=[1;0;0;1];
+p2=[0;1;0;1];
+p3=[0;0;1;1];
+q0=transformation*p0;
+q1=transformation*p1;
+q2=transformation*p2;
+q3=transformation*p3;
+voxel_size=[sqrt((q1-q0)'*(q1-q0)),sqrt((q2-q0)'*(q2-q0)),sqrt((q3-q0)'*(q3-q0))];
+end
