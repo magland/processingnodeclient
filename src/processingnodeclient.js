@@ -5,6 +5,7 @@ var ProcessDatabase=require('./processdatabase').ProcessDatabase;
 
 var fs=require('fs');
 var crypto=require('crypto');
+var mongo=require('mongodb');
 
 
 function ProcessingNodeClient() {
@@ -114,34 +115,59 @@ function ProcessingNodeClient() {
 		if (!m_socket) return;
 		m_socket.disconnect();
 	}
+	function get_access_from_database(callback) {
+		open_database({},function(err,db) {
+			if (err) {
+				callback({success:false,error:'Problem opening database: '+err});
+				return;
+			}
+			var CC=db.collection('admin');
+			CC.find({_id:'access'}).toArray(function(err,docs) {
+				db.close();
+				if (err) {
+					callback({success:false,error:err});
+					return;
+				}
+				callback({success:true,access:(docs[0]||{}).access||null});
+			});
+		});
+	}
 	function _connectToServer(host,port,callback) {
 		m_socket=new WisdmSocket();
 		console.log ('Connecting to '+host+' on port '+port);
-		m_socket.connect(host,port,function(tmp1) {
-			if (!tmp1.success) {
-				m_socket=null;
-				callback(tmp1);
+		get_access_from_database(function(tmpA) {
+			if (!tmpA.success) {
+				callback(tmpA);
 				return;
 			}
-			console.log ('Connection established.');
-			setTimeout(function() {
-				if (!m_socket) return; //important!
-				m_socket.sendMessage({
-					command:'connect_as_processing_node',
-					processing_node_id:m_processing_node_id,
-					owner:m_owner,
-					secret_id:m_secret_id
-				});
-			},1000);
-			callback({success:true});
-		});
-		m_socket.onMessage(function(msg) {
-			m_last_action_timer=new Date();
-			process_message_from_server(msg);
-		});
-		m_socket.onClose(function() {
-			m_socket=null;
-			m_connection_accepted=false;
+			var access=tmpA.access||{users:[{user_id:'public'}]}; //for now we add public as a user by default - change this in future
+			m_socket.connect(host,port,function(tmp1) {
+				if (!tmp1.success) {
+					m_socket=null;
+					callback(tmp1);
+					return;
+				}
+				console.log ('Connection established.');
+				setTimeout(function() {
+					if (!m_socket) return; //important!
+					m_socket.sendMessage({
+						command:'connect_as_processing_node',
+						processing_node_id:m_processing_node_id,
+						owner:m_owner,
+						secret_id:m_secret_id,
+						access:access
+					});
+				},1000);
+				callback({success:true});
+			});
+			m_socket.onMessage(function(msg) {
+				m_last_action_timer=new Date();
+				process_message_from_server(msg);
+			});
+			m_socket.onClose(function() {
+				m_socket=null;
+				m_connection_accepted=false;
+			});
 		});
 	}
 	function _checkPaths(callback) {
@@ -355,10 +381,41 @@ function ProcessingNodeClient() {
 			});
 			callback({success:true});
 		}
+		else if (command=='setProcessingNodeAccess') {
+			open_database({},function(err,db) {
+				if (err) {
+					callback({success:false,error:err});
+					return;
+				}
+				var CC=db.collection('admin');
+				CC.save({_id:'access',access:request.access},function(err) {
+					db.close();
+					if (err) {
+						callback({success:false,error:err});
+						return;
+					}
+					callback({success:true});
+				});
+			});
+			
+		}
 		else {
 			callback({success:false,error:'Unrecognized or missing server request command: '+command});
 		}
 	}
+	
+	function open_database(params,callback) {
+		var db=new mongo.Db(m_processing_node_id, new mongo.Server('localhost',params.port||27017, {}), {safe:true});
+		db.open(function(err,db) {
+			if (err) {
+				if (callback) callback(err,null);
+			}
+			else {
+				if (callback) callback('',db);
+			}
+		});
+	}
+
 	
 	
 	/**************************************************************************************
