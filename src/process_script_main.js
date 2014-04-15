@@ -10,12 +10,13 @@ var script_info=require('./custom_script').script_info||{};
 var processing_node_id=script_info.processing_node_id;
 var script_id=script_info.script_id;
 var user_id=script_info.user_id;
+var run_parameters=script_info.run_parameters||{};
 
 var WISDM_SUBMITTED_PROCESSES={};
 var WISDM_SUBMITTED_PROCESS_LIST=[]; //so we can keep track of the order of submission
 
 try {
-	run();
+	run(run_parameters);
 }
 catch(err) {
 	console.error(err);

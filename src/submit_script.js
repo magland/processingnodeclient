@@ -44,6 +44,7 @@ function submit_script(node_path,request,callback) {
 				var script_info={
 					processing_node_id:wisdmconfig.processingnodeclient.node_id,
 					script_id:script_id,
+					run_parameters:request.run_parameters||{},
 					user_id:params.user_id,
 					submitted:(new Date()).toString()
 				};
