@@ -16,6 +16,9 @@ function RunningProcess() {
 	this.processStatus=function(callback) {return m_process_status;};
 	this.processError=function(callback) {return m_process_error;};
 	this.outputFiles=function() {return m_output_files;};
+	this.process=function() {return m_process;};
+	this.processor=function() {return m_processor;};
+	this.timeLaunched=function() {return m_time_launched;};
 	
 	var m_process={};
 	var m_processor={};
@@ -29,6 +32,7 @@ function RunningProcess() {
 	var m_process_status='not_started';
 	var m_process_error='';
 	var m_output_files={};
+	var m_time_launched=null;
 	
 	function report_error(callback,errstr) {
 		console.error('ERROR: '+errstr);
@@ -73,6 +77,7 @@ function RunningProcess() {
 		});
 		
 		function start_process(callback) {
+			m_time_launched=new Date();
 			m_process_status='start_process';
 			m_spawned_process=spawn('/bin/bash',[m_processor_working_path+'/main.sh',m_processor_working_path],{cwd:m_process_working_path});
 			callback({success:true});

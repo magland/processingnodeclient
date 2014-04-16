@@ -2,10 +2,14 @@ var WisdmSocket=require('./wisdmsocket').WisdmSocket;
 var common=require('./common').common;
 var submit_script=require('./submit_script').submit_script;
 var ProcessDatabase=require('./processdatabase').ProcessDatabase;
+var WISDMUSAGE=require('./wisdmusage').WISDMUSAGE;
 
 var fs=require('fs');
 var crypto=require('crypto');
 var mongo=require('mongodb');
+
+WISDMUSAGE.startPeriodicWritePendingRecords();
+WISDMUSAGE.setCollectionName('processingnodeclient');
 
 
 function ProcessingNodeClient() {
@@ -193,6 +197,13 @@ function ProcessingNodeClient() {
 	}
 	
 	function process_message_from_server(msg) {
+		WISDMUSAGE.addRecord({
+			usage_type:'message_bytes_in',
+			user_id:msg.user_id||'unknown',
+			amount:JSON.stringify(msg).length,
+			processing_node_id:m_processing_node_id,
+			name:msg.command||''
+		});
 		if (!m_connection_accepted) {
 			if (msg.command=='connection_accepted') {
 				console.log ('CONNECTION ACCEPTED');
@@ -213,7 +224,16 @@ function ProcessingNodeClient() {
 				try {
 					handle_server_request(msg,function(resp) {
 						resp.server_request_id=server_request_id;
-						if (m_socket) m_socket.sendMessage(resp);
+						if (m_socket) {
+							WISDMUSAGE.addRecord({
+								usage_type:'message_bytes_out',
+								user_id:msg.user_id||'unknown',
+								amount:JSON.stringify(resp).length,
+								processing_node_id:m_processing_node_id,
+								name:msg.command||''
+							});
+							m_socket.sendMessage(resp);
+						}
 					});
 				}
 				catch(err) {

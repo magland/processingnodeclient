@@ -2,6 +2,9 @@ var run=require('./custom_script').run;
 var create_wisdm_processor=require('./create_wisdm_processor').create_wisdm_processor;
 var internal_functions=require('./custom_script').internal_functions;
 var common=require('./common').common;
+var WISDMUSAGE=require('./wisdmusage').WISDMUSAGE;
+
+WISDMUSAGE.setCollectionName('processing_script');
 
 internal_functions.submitProcess=submitProcess;
 //internal_functions.getProcessingStatus=getProcessingStatus;
@@ -51,6 +54,8 @@ function finalize_and_write_submitted_processes(previous_statuses) {
 	});
 	common.write_text_file(__dirname+'/wisdm_submitted_processes.json',JSON.stringify(WISDM_SUBMITTED_PROCESS_LIST));
 	console.log ('Done submitting processes.');
+	
+	WISDMUSAGE.writePendingRecords();
 }
 
 ///////////////////////////////////////////////

@@ -1,12 +1,21 @@
 var fs=require('fs');
 var common=require('./common').common;
 var wisdmconfig=require('./wisdmconfig').wisdmconfig;
+var WISDMUSAGE=require('./wisdmusage').WISDMUSAGE;
 
 function submit_script(node_path,request,callback) {
 	if ((!request.auth_info)||(!request.auth_info.user_id)) {
 		callback({success:false,error:'user_id missing in request of submit_script'});
 		return;
 	}
+	
+	WISDMUSAGE.addRecord({
+		usage_type:'scripts_submitted',
+		user_id:request.user_id||'unknown',
+		amount:1,
+		processing_node_id:'',
+		name:''
+	});
 	
 	var script_id=common.make_random_id(10);
 	
@@ -17,6 +26,15 @@ function submit_script(node_path,request,callback) {
 		code+=scripts[key];
 		code+='\n';
 	}
+	
+	WISDMUSAGE.addRecord({
+		usage_type:'script_code_bytes',
+		user_id:request.user_id||'unknown',
+		amount:code.length,
+		processing_node_id:'',
+		name:''
+	});
+	
 	write_temporary_script(code,{user_id:request.auth_info.user_id},function(tmp1) {
 		if (tmp1.success) {
 			execute_script(tmp1.script_path,callback);
@@ -57,7 +75,7 @@ function submit_script(node_path,request,callback) {
 		
 					var files_to_copy=[
 						'process_script_main.js','create_wisdm_processor.js',
-						'processdatabase.js','runningprocess.js','common.js'
+						'processdatabase.js','runningprocess.js','common.js','wisdmusage.js'
 					];
 					var folders_to_copy=['octave'];
 					copy_files(files_to_copy,__dirname,node_path+'/_WISDM/scripts/'+script_id,function(tmp05) {
@@ -146,6 +164,15 @@ function submit_script(node_path,request,callback) {
 	}
 	
 	function execute_script(fname,callback3) {
+		var timer=new Date();
+		WISDMUSAGE.addRecord({
+			usage_type:'scripts_spawned',
+			user_id:request.user_id||'unknown',
+			amount:1,
+			processing_node_id:'',
+			name:''
+		});
+		
 		var spawn = require('child_process').spawn;
 		var process=spawn('node',[fname]);
 		var output='';
@@ -158,6 +185,25 @@ function submit_script(node_path,request,callback) {
 		});
 		
 		process.on('close', function (code) {
+			
+			WISDMUSAGE.addRecord({
+				usage_type:'scripts_completed',
+				user_id:request.user_id||'unknown',
+				amount:1,
+				processing_node_id:'',
+				name:''
+			});
+			
+			var elapsed=(new Date())-timer;
+			
+			WISDMUSAGE.addRecord({
+				usage_type:'script_execution_time',
+				user_id:request.user_id||'unknown',
+				amount:elapsed,
+				processing_node_id:'',
+				name:''
+			});
+			
 			output+='Process exited with code ' + code;
 			common.read_text_file(common.get_file_path(fname)+'/wisdm_submitted_processes.json',function(tmp1) {
 				if (!tmp1.success) {
@@ -172,6 +218,7 @@ function submit_script(node_path,request,callback) {
 					callback({success:false,error:'Unexpected problem parsing submitted processes'});
 					return;
 				}
+				
 				callback3({success:true,output:output,submitted_processes:submitted_processes,script_id:script_id});
 			});
 		});

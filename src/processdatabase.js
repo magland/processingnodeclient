@@ -2,6 +2,7 @@ var mongo=require('mongodb');
 var common=require('./common').common;
 var RunningProcess=require('./runningprocess').RunningProcess;
 var fs=require('fs');
+var WISDMUSAGE=require('./wisdmusage').WISDMUSAGE;
 
 function ProcessDatabase() {
 	var that=this;
@@ -222,6 +223,15 @@ function ProcessDatabase() {
 		
 		function save_processor_docs(callback) {
 			if (processor_docs_to_save.length>0) {
+				
+				WISDMUSAGE.addRecord({
+					usage_type:'processes_submitted',
+					user_id:params.user_id||'unknown',
+					amount:processor_docs_to_save.length,
+					processing_node_id:'',
+					name:''
+				});
+				
 				var processor_collection=m_db.collection('processors');
 				common.for_each_async(processor_docs_to_save,function(doc,cb) {
 					processor_collection.save(doc,function(err) {
@@ -428,6 +438,14 @@ function ProcessDatabase() {
 					report_error(callback,'Problem writing processor files: '+tmp2.error);
 					return;
 				}
+				
+				WISDMUSAGE.addRecord({
+					usage_type:'processes_launched',
+					user_id:process.user_id||'unknown',
+					amount:1,
+					processing_node_id:'',
+					name:processor.processor_name||'unknown_name'
+				});
 				
 				execute_process(function(tmp3) {
 					if (!tmp3.success) {
@@ -730,7 +748,26 @@ function ProcessDatabase() {
 			report_error(callback,'Unexpected problem in on_process_completed: process not found in running processes: '+process_id);
 			return;
 		}
+		
+		
 		var RP=m_running_processes[process_id];
+		
+		WISDMUSAGE.addRecord({
+			usage_type:'processes_completed',
+			user_id:RP.process().user_id||'unknown',
+			amount:1,
+			processing_node_id:'',
+			name:''
+		});
+		var elapsed=(new Date())-RP.timeLaunched();
+		WISDMUSAGE.addRecord({
+			usage_type:'process_time',
+			user_id:RP.process().user_id||'unknown',
+			amount:elapsed,
+			processing_node_id:'',
+			name:''
+		});
+		
 		var status=RP.processStatus();
 		var obj={status:status};
 		obj.process_output=RP.processOutput();
