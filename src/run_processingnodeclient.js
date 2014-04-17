@@ -1,4 +1,7 @@
 var spawn=require('child_process').spawn;
+var mongo=require('mongodb');
+var wisdmconfig=require('./wisdmconfig').wisdmconfig;
+var common=require('./common').common;
 
 var process_timeout=5*60*1000; //every 5 minutes restart
 
@@ -23,3 +26,4 @@ function do_launch_if_needed() {
 	});
 }
 do_launch_if_needed();
+

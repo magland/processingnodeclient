@@ -296,16 +296,17 @@ function ProcessDatabase() {
 				report_error(callback,'Problem queueing pending processes: '+tmp1.error);
 				return;
 			}
-			launch_queued_processes_that_are_ready(function(tmp2) {
-				if (!tmp2.success) {
-					report_error(callback,'Problem launching queued processes: '+tmp2.error);
+			handle_running_processes(function(tmp3) { //perhaps important to handle running processes before launching queued processes, so we can make sure to first remove any running processes that are no longer in the database
+				if (!tmp3.success) {
+					report_error(callback,'Problem handling running processes: '+tmp3.error);
 					return;
 				}
-				handle_running_processes(function(tmp3) {
-					if (!tmp3.success) {
-						report_error(callback,'Problem handling running processes: '+tmp3.error);
+				launch_queued_processes_that_are_ready(function(tmp2) {
+					if (!tmp2.success) {
+						report_error(callback,'Problem launching queued processes: '+tmp2.error);
 						return;
 					}
+				
 					callback({success:true});
 				});
 			});
@@ -713,6 +714,18 @@ function ProcessDatabase() {
 				return;
 			}
 			
+			//delete the running processes that are not in the database
+			var running_process_ids={};
+			running_processes.forEach(function(process) {
+				running_process_ids[process._id]=1;
+			});
+			for (var rpid in m_running_processes) {
+				if (!running_process_ids[rpid]) {
+					console.log ('deleting process not in database: '+rpid);
+					delete m_running_processes[rpid];
+				}
+			}
+			
 			common.for_each_async(running_processes,handle_running_process,callback,5);
 			
 		});
@@ -731,16 +744,34 @@ function ProcessDatabase() {
 			}
 			else {
 				//not found in running processes... move it back to queued
-				console.log ('Process not found in running processes... moving to error: '+process_id);
-				process_collection.update({_id:process_id},{$set:{status:'error',error:'process not found in running processes, perhaps the WISDM server restarted while this processing was running.','timestamps.error':(new Date()).getTime()}},function(err) {
-					if (err) {
-						cb({success:false,error:'Problem changing status from running to error: '+err}); 
-						return;
-					}
-					cb({success:true});
+				console.log ('Process not found in running processes... killing and moving to error: '+process_id);
+				kill_process_by_pid(process.pid,function() {
+					process_collection.update({_id:process_id},{$set:{status:'error',error:'process not found in running processes, perhaps the WISDM server restarted while this processing was running.','timestamps.error':(new Date()).getTime()}},function(err) {
+						if (err) {
+							cb({success:false,error:'Problem changing status from running to error: '+err}); 
+							return;
+						}
+						cb({success:true});
+					});
 				});
 			}
 		}
+	}
+	
+	function kill_process_by_pid(pid,callback) {
+		if (!pid) {
+			console.error('pid is empty in kill_process_by_pid');
+			if (callback) callback();
+			return;
+		}
+		//kill the child processes via "-P", because the main process is the bash script!!!
+		require('child_process').exec('pkill -P '+pid,function(err,stdout,stderr) {
+			if (err) console.error('Error in kill: '+err);
+			if (stdout) console.log ('kill stdout: '+stdout);
+			if (stderr) console.log ('kill stderr: '+stderr);
+			if (callback) callback();
+			return;
+		});
 	}
 	
 	function on_process_completed(process_id,callback) {

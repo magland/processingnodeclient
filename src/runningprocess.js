@@ -77,10 +77,23 @@ function RunningProcess() {
 		});
 		
 		function start_process(callback) {
+			if (!m_process_database) {
+				report_error(callback,'process database is null (*).');
+				return;
+			}
+			
 			m_time_launched=new Date();
 			m_process_status='start_process';
 			m_spawned_process=spawn('/bin/bash',[m_processor_working_path+'/main.sh',m_processor_working_path],{cwd:m_process_working_path});
 			callback({success:true});
+			
+			var pid=m_spawned_process.pid;
+			var CC=m_process_database.collection('processes');
+			CC.update({_id:m_process._id},{$set:{pid:pid}},function(err) {
+				if (err) {
+					console.error('Problem setting pid in database: '+err);
+				}
+			});
 			
 			m_spawned_process.stdout.on('data',function(data) {
 				m_process_output+=data;

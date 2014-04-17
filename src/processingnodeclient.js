@@ -454,8 +454,32 @@ function ProcessingNodeClient() {
 			return;
 		}
 		
-		m_process_database.remove('processes',{status:{$in:['pending','queued','running','error']},script_id:script_id},function(tmp) {
-			callback(tmp);
+		//kill running processes
+		m_process_database.find('processes',{status:'running',script_id:script_id},{pid:1},function(tmp1) {
+			tmp1.docs.forEach(function(doc) {
+				kill_process_by_pid(doc.pid,function() {
+				});
+			});
+			//remove processes
+			m_process_database.remove('processes',{status:{$in:['pending','queued','running','error']},script_id:script_id},function(tmp) {
+				callback(tmp);
+			});
+		});
+	}
+	
+	function kill_process_by_pid(pid,callback) {
+		if (!pid) {
+			console.error('pid is empty in kill_process_by_pid');
+			if (callback) callback();
+			return;
+		}
+		//kill the child processes via "-P", because the main process is the bash script!!!
+		require('child_process').exec('pkill -P '+pid,function(err,stdout,stderr) {
+			if (err) console.error('Error in kill: '+err);
+			if (stdout) console.log ('kill stdout: '+stdout);
+			if (stderr) console.log ('kill stderr: '+stderr);
+			if (callback) callback();
+			return;
 		});
 	}
 	
@@ -540,7 +564,7 @@ function ProcessingNodeClient() {
 			for (var script_id in ret.process_counts_by_script) script_ids.push(script_id);
 			common.for_each_async(script_ids,function(script_id,cb2) {
 				m_process_database.find('scripts',{script_id:script_id},{timestamps:1,num_processes:1},function(tmp) {
-					if (!tmp) {cb2(tmp); return;}
+					if (!tmp.success) {cb2(tmp); return;}
 					if (tmp.docs[0]) scripts_info[script_id]=tmp.docs[0];
 					cb2({success:true});
 				});
