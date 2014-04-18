@@ -1,6 +1,7 @@
 var common=require('./common').common;
 var spawn=require('child_process').spawn;
 var fs=require('fs');
+var DATABASE=require('./databasemanager').DATABASE;
 
 function RunningProcess() {
 	var that=this;
@@ -9,7 +10,6 @@ function RunningProcess() {
 	this.setProcessor=function(processor) {m_processor=processor;};
 	this.setProcessWorkingPath=function(path) {m_process_working_path=path;};
 	this.setProcessorWorkingPath=function(path) {m_processor_working_path=path;};
-	this.setProcessDatabase=function(db) {m_process_database=db;};
 	this.setDataFilePath=function(path) {m_data_file_path=path;};
 	this.start=function(callback) {_start(callback);};
 	this.processOutput=function() {return m_process_output;};
@@ -19,13 +19,13 @@ function RunningProcess() {
 	this.process=function() {return m_process;};
 	this.processor=function() {return m_processor;};
 	this.timeLaunched=function() {return m_time_launched;};
+	this.setProcessDatabaseName=function(name) {m_process_database_name=name;};
 	
 	var m_process={};
 	var m_processor={};
 	var m_process_working_path='';
 	var m_processor_working_path='';
 	var m_data_file_path='';
-	var m_process_database=null;
 	var m_spawned_process=null;
 	var m_process_output='';
 	var m_process_completed_handlers=[];
@@ -33,6 +33,7 @@ function RunningProcess() {
 	var m_process_error='';
 	var m_output_files={};
 	var m_time_launched=null;
+	var m_process_database_name='';
 	
 	function report_error(callback,errstr) {
 		console.error('ERROR: '+errstr);
@@ -55,12 +56,8 @@ function RunningProcess() {
 			report_error(callback,'data file path is empty.');
 			return;
 		}
-		if (!m_process_database) {
-			report_error(callback,'process database is null.');
-			return;
-		}
 		
-		var process_collection=m_process_database.collection('processes');
+		var DB=DATABASE(m_process_database_name);
 		
 		make_directories(function(tmp) {
 			if (!tmp.success) {callback(tmp); return;}
@@ -77,19 +74,14 @@ function RunningProcess() {
 		});
 		
 		function start_process(callback) {
-			if (!m_process_database) {
-				report_error(callback,'process database is null (*).');
-				return;
-			}
-			
 			m_time_launched=new Date();
 			m_process_status='start_process';
 			m_spawned_process=spawn('/bin/bash',[m_processor_working_path+'/main.sh',m_processor_working_path],{cwd:m_process_working_path});
 			callback({success:true});
 			
 			var pid=m_spawned_process.pid;
-			var CC=m_process_database.collection('processes');
-			CC.update({_id:m_process._id},{$set:{pid:pid}},function(err) {
+			DB.setCollection('processes');
+			DB.update({_id:m_process._id},{$set:{pid:pid}},function(err) {
 				if (err) {
 					console.error('Problem setting pid in database: '+err);
 				}
@@ -156,7 +148,8 @@ function RunningProcess() {
 					});
 				}
 				else if (input_file.process_id) {
-					process_collection.find({_id:input_file.process_id}).toArray(function(err,docs) {
+					DB.setCollection('processes');
+					DB.find({_id:input_file.process_id},{},function(err,docs) {
 						if ((err)||(docs.length===0)) {
 							report_error(cb,'Unable to find process for input file: '+input_file_name);
 							return;

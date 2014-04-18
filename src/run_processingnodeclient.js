@@ -1,5 +1,4 @@
 var spawn=require('child_process').spawn;
-var mongo=require('mongodb');
 var wisdmconfig=require('./wisdmconfig').wisdmconfig;
 var common=require('./common').common;
 

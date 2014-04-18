@@ -6,11 +6,10 @@ var WISDMUSAGE=require('./wisdmusage').WISDMUSAGE;
 
 var fs=require('fs');
 var crypto=require('crypto');
-var mongo=require('mongodb');
+var DATABASE=require('./databasemanager').DATABASE;
 
 WISDMUSAGE.startPeriodicWritePendingRecords();
 WISDMUSAGE.setCollectionName('processingnodeclient');
-
 
 function ProcessingNodeClient() {
 	var that=this;
@@ -51,21 +50,14 @@ function ProcessingNodeClient() {
 	
 	function initialize_process_database_2(callback) {
 		m_process_database=new ProcessDatabase();
+		m_process_database.setDatabaseName(m_processing_node_id);
 		m_process_database.setProcessWorkingPath(m_node_path+'/_WISDM/working_processes');
 		m_process_database.setProcessorWorkingPath(m_node_path+'/_WISDM/working_processors');
 		m_process_database.setDataFilePath(m_node_path+'/_WISDM/data_files');
 
 		setTimeout(function() {
-			var database_name=m_processing_node_id; //change node1 to node name
-			console.log ('Connecting to database: '+database_name);
-			m_process_database.connect({database:database_name},function(tmp1) { 
-				if (!tmp1.success) {
-					if (callback) callback({success:false,error:'Unable to connect to database: '+database_name});
-					return;
-				}
-				if (callback) callback({success:true});
-				periodic_handle_processes();
-			});
+			if (callback) callback({success:true});
+			periodic_handle_processes();
 		},100);
 	}
 	
@@ -120,20 +112,14 @@ function ProcessingNodeClient() {
 		m_socket.disconnect();
 	}
 	function get_access_from_database(callback) {
-		open_database({},function(err,db) {
+		var DB=DATABASE(m_processing_node_id);
+		DB.setCollection('admin');
+		DB.find({_id:'access'},{},function(err,docs) {
 			if (err) {
-				callback({success:false,error:'Problem opening database: '+err});
+				callback({success:false,error:err});
 				return;
 			}
-			var CC=db.collection('admin');
-			CC.find({_id:'access'}).toArray(function(err,docs) {
-				db.close();
-				if (err) {
-					callback({success:false,error:err});
-					return;
-				}
-				callback({success:true,access:(docs[0]||{}).access||null});
-			});
+			callback({success:true,access:(docs[0]||{}).access||null});
 		});
 	}
 	function _connectToServer(host,port,callback) {
@@ -402,28 +388,22 @@ function ProcessingNodeClient() {
 			callback({success:true});
 		}
 		else if (command=='setProcessingNodeAccess') {
-			open_database({},function(err,db) {
+			var DB=DATABASE(m_processing_node_id);
+			DB.setCollection('admin');
+			DB.save({_id:'access',access:request.access},function(err) {
 				if (err) {
 					callback({success:false,error:err});
 					return;
 				}
-				var CC=db.collection('admin');
-				CC.save({_id:'access',access:request.access},function(err) {
-					db.close();
-					if (err) {
-						callback({success:false,error:err});
-						return;
-					}
-					callback({success:true});
-				});
+				callback({success:true});
 			});
-			
 		}
 		else {
 			callback({success:false,error:'Unrecognized or missing server request command: '+command});
 		}
 	}
 	
+	/*
 	function open_database(params,callback) {
 		var db=new mongo.Db(m_processing_node_id, new mongo.Server('localhost',params.port||27017, {}), {safe:true});
 		db.open(function(err,db) {
@@ -435,7 +415,7 @@ function ProcessingNodeClient() {
 			}
 		});
 	}
-
+	*/
 	
 	
 	/**************************************************************************************

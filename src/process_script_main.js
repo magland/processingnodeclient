@@ -38,6 +38,7 @@ add_script_to_database(function(tmp0) {
 	submit_all_processes(function(tmp) {
 		if (!tmp.success) {
 			console.error('Problem submitting processes: '+tmp.error);
+			process.exit(1);
 		}
 		else {
 			finalize_and_write_submitted_processes(tmp.previous_statuses);
@@ -55,7 +56,11 @@ function finalize_and_write_submitted_processes(previous_statuses) {
 	common.write_text_file(__dirname+'/wisdm_submitted_processes.json',JSON.stringify(WISDM_SUBMITTED_PROCESS_LIST));
 	console.log ('Done submitting processes.');
 	
-	WISDMUSAGE.writePendingRecords();
+	WISDMUSAGE.writePendingRecords(function() {
+		setTimeout(function() {
+			process.exit(0);
+		},100);
+	});
 }
 
 ///////////////////////////////////////////////
@@ -67,20 +72,12 @@ function disp(str) {
 ///////////////////////////////////////////////
 
 
-
 function open_database(callback) {
 	var ProcessDatabase=require('./processdatabase').ProcessDatabase;
 	var database_name=processing_node_id;
 	var PROCESS_DATABASE=new ProcessDatabase();
-	PROCESS_DATABASE.connect({database:database_name},function(tmp1) {
-		if (tmp1.success) {
-			callback(PROCESS_DATABASE);
-		}
-		else {
-			console.error('ERROR CONNECTING TO DATABASE: '+tmp1.error);
-			callback(null);
-		}
-	});
+	PROCESS_DATABASE.setDatabaseName(database_name);
+	callback(PROCESS_DATABASE);
 }
 
 
@@ -91,7 +88,6 @@ function submit_all_processes(callback) {
 			return;
 		}
 		DB.addProcesses(WISDM_SUBMITTED_PROCESSES,{user_id:user_id},function(tmp2) {
-			DB.disconnect();
 			callback(tmp2);
 		});
 	});
@@ -109,7 +105,6 @@ function add_script_to_database(callback) {
 			num_processes:num_processes
 		};
 		DB.addScriptRecord(script_record,function(tmp) {
-			DB.disconnect();
 			if (!tmp.success) {callback(tmp); return;}
 			callback({success:true});
 		});

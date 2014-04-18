@@ -1,7 +1,7 @@
 exports.WISDMUSAGE=new WisdmUsage();
 
-var mongo=require('mongodb');
 var common=require('./common').common;
+var DATABASE=require('./databasemanager').DATABASE;
 
 function WisdmUsage() {
 	var that=this;
@@ -22,35 +22,27 @@ function WisdmUsage() {
 	
 	function write_pending_records(callback) {
 		if (m_pending_records.length>0) {
-			open_database({},function(err,db) {
-				if (err) {
-					if (callback) callback({success:false,error:'Problem opening wisdmusage database: '+err});
-					return;
-				}
-				
-				var CC=db.collection(m_collection_name);
-			
-				var docs=[];
-				common.for_each_async(m_pending_records,function(record,cb) {
-					var doc={
-						user_id:record.user_id||'unknown',
-						usage_type:record.usage_type||'unknown',
-						name:record.name||'unknown',
-						hour:get_current_hour()
-					};
-					CC.update(doc,{$inc:{amount:record.amount}},{upsert:true},function(err) {
-						if (err) {
-							cb({success:false,error:'Error inserting usage record: '+err});
-							return;
-						}
-						cb({success:true});
-					});
-				},function(tmp) {
-					m_pending_records=[];
-					db.close();
-					if (callback) callback(tmp);
-				},1);
-			});
+			var DB=DATABASE('wisdmusage');
+			var docs=[];
+			common.for_each_async(m_pending_records,function(record,cb) {
+				var doc={
+					user_id:record.user_id||'unknown',
+					usage_type:record.usage_type||'unknown',
+					name:record.name||'unknown',
+					hour:get_current_hour()
+				};
+				DB.setCollection(m_collection_name);
+				DB.upsert(doc,{$inc:{amount:record.amount}},function(err) {
+					if (err) {
+						cb({success:false,error:'Error inserting usage record: '+err});
+						return;
+					}
+					cb({success:true});
+				});
+			},function(tmp) {
+				m_pending_records=[];
+				if (callback) callback(tmp);
+			},1);
 		}
 		else {
 			if (callback) {callback({success:true});}
@@ -76,7 +68,7 @@ function WisdmUsage() {
 		});
 	}
 	
-	
+	/*
 	function open_database(params,callback) {
 		var db=new mongo.Db('wisdmusage', new mongo.Server('localhost',params.port||27017, {}), {safe:true});
 		db.open(function(err,db) {
@@ -88,5 +80,6 @@ function WisdmUsage() {
 			}
 		});
 	}
+	*/
 }
 
