@@ -1,7 +1,8 @@
 /*********** process_script internals.js ******************/
 
 
-if (run) exports.run=run;
+if (typeof(run)!='undefined') exports.run=run;
+else if (typeof(__pipeline_run)!='undefined') exports.run=__pipeline_run;
 else {
 	throw new Error('run function not found.');
 }

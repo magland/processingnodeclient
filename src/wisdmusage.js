@@ -10,6 +10,8 @@ function WisdmUsage() {
 	this.addRecord=function(record) {_addRecord(record);};
 	this.writePendingRecords=function(callback) {write_pending_records(callback);};
 	this.startPeriodicWritePendingRecords=function(callback) {_startPeriodicWritePendingRecords(callback);};
+	this.getAllUsers=function(params,callback) {_getAllUsers(params,callback);};
+	this.getUsage=function(params,callback) {_getUsage(params,callback);};
 	
 	var m_pending_records=[];
 	var m_collection_name='undefined';
@@ -52,6 +54,10 @@ function WisdmUsage() {
 		var dd=new Date();
 		return dd.getFullYear()+'-'+('000'+(dd.getMonth()+1)).slice(-2)+'-'+('000'+(dd.getDate())).slice(-2)+'-'+('000'+(dd.getHours())).slice(-2);
 	}
+	function get_current_date() {
+		var dd=new Date();
+		return dd.getFullYear()+'-'+('000'+(dd.getMonth()+1)).slice(-2)+'-'+('000'+(dd.getDate())).slice(-2);
+	}
 	
 	function _startPeriodicWritePendingRecords(callback) {
 		periodic_write_pending_records();
@@ -65,6 +71,38 @@ function WisdmUsage() {
 			else {
 				setTimeout(periodic_write_pending_records,1000);
 			}
+		});
+	}
+	function _getAllUsers(params,callback) {
+		var date=params.date||get_current_date();
+		var DB=DATABASE('wisdmusage');
+		DB.setCollection('wisdmserver');
+		DB.find({hour:{$regex:'^'+date}},{user_id:1},function(err,docs) {
+			if (err) {
+				callback({success:false,error:'Error in find: '+err});
+				return;
+			}
+			var all_user_ids={};
+			docs.forEach(function(doc) {
+				if (doc.user_id) all_user_ids[doc.user_id]=1;
+			});
+			var users=[];
+			for (var user_id in all_user_ids) users.push(user_id);
+			users.sort();
+			callback({success:true,users:users});
+		});
+	}
+	function _getUsage(params,callback) {
+		var date=params.date||get_current_date();
+		var user_id=params.user_id||'';
+		var DB=DATABASE('wisdmusage');
+		DB.setCollection('wisdmserver');
+		DB.find({hour:{$regex:'^'+date},user_id:user_id},{},function(err,docs) {
+			if (err) {
+				callback({success:false,error:'Error in find: '+err});
+				return;
+			}
+			callback({success:true,records:docs});
 		});
 	}
 	

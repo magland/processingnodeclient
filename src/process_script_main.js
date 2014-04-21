@@ -1,4 +1,4 @@
-var run=require('./custom_script').run;
+
 var create_wisdm_processor=require('./create_wisdm_processor').create_wisdm_processor;
 var internal_functions=require('./custom_script').internal_functions;
 var common=require('./common').common;
@@ -18,13 +18,9 @@ var run_parameters=script_info.run_parameters||{};
 var WISDM_SUBMITTED_PROCESSES={};
 var WISDM_SUBMITTED_PROCESS_LIST=[]; //so we can keep track of the order of submission
 
-try {
-	run(run_parameters);
-}
-catch(err) {
-	console.error(err);
-	return;
-}
+//////////////////////////////////////////////////////
+require('./custom_script').run(run_parameters);
+//////////////////////////////////////////////////////
 
 var num_processes=0;
 for (var key in WISDM_SUBMITTED_PROCESSES) num_processes++;
