@@ -122,6 +122,8 @@ function create_wisdm_processor_octave(params) {
 	
 	if (matlab_mode) {
 		custom_script_m+="catch err\n";
+		custom_script_m+="\tdisp(err.message);\n";
+		custom_script_m+="\tdisp(err.stack);\n";
 		custom_script_m+="\tdisp(err);\n";
 		custom_script_m+="end\n\n";
 	}
