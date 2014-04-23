@@ -109,6 +109,15 @@ function add_script_to_database(callback) {
 
 //////////////////////////////////////////////////
 
+function make_clean_input_file(input_file) {
+	var tmp={};
+	if (input_file.file_type) tmp.file_type=input_file.file_type;
+	if (input_file.process_id) tmp.process_id=input_file.process_id;
+	if (input_file.output_name) tmp.output_name=input_file.output_name;
+	if (input_file.content) tmp.content=input_file.content;
+	return tmp;
+}
+
 function submitProcess(process) {
 	process.processor=create_wisdm_processor(process.processor||{});
 	
@@ -119,12 +128,17 @@ function submitProcess(process) {
 	var clean_input_files={};
 	for (var input_file_name in process.input_files) {
 		var input_file=process.input_files[input_file_name];
-		var tmp={};
-		if (input_file.file_type) tmp.file_type=input_file.file_type;
-		if (input_file.process_id) tmp.process_id=input_file.process_id;
-		if (input_file.output_name) tmp.output_name=input_file.output_name;
-		if (input_file.content) tmp.content=input_file.content;
-		clean_input_files[input_file_name]=tmp;
+		if (input_file.length) {
+			//the input file is actually a list of files
+			var tmp=[];
+			for (var i=0; i<input_file.length; i++) {
+				tmp.push(make_clean_input_file(input_file[i]));
+			}
+			clean_input_files[input_file_name]=tmp;
+		}
+		else {
+			clean_input_files[input_file_name]=make_clean_input_file(input_file);
+		}
 	}
 	process.input_files=clean_input_files;
 	

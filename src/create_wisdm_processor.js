@@ -60,16 +60,25 @@ function create_wisdm_processor_octave(params) {
 	for (var input_file_name in input_files) {
 		var input_file=input_files[input_file_name];
 		
-		var file_name_str="'input_files/"+input_file_name+"."+(input_file.file_type)+"'";
-		
-		if (input_file.file_type=='mda') {
-			custom_script_m+=input_file_name+"=readArray("+file_name_str+");\n";
-		}
-		else if (input_file.file_type=='nii') {
-			custom_script_m+=input_file_name+"=readNii("+file_name_str+");\n";
+		if (input_file.file_type.indexOf('LIST<')===0) {
+			var ind1=input_file.file_type.indexOf('<');
+			var ind2=input_file.file_type.indexOf('>');
+			if ((ind1<0)||(ind2<0)||(ind2<ind1)) {
+				console.error('Improper input type: '+input_file.file_type);
+			}
+			else {
+				var type0=input_file.file_type.slice(ind1+1,ind2);
+				var length_path_str="'input_files/"+input_file_name+"/length'";
+				var file_path_str="sprintf('input_files/%s/%d.%s','"+input_file_name+"',j_-1,'"+type0+"')";
+				custom_script_m+="disp('reading length');\n";
+				custom_script_m+="len_=floor(str2double(read_text_file("+length_path_str+")));\n";
+				custom_script_m+="disp(len_);\n";
+				custom_script_m+="for j_=1:len_ disp(j_); disp("+file_path_str+"); "+input_file_name+"{j_}="+create_read_file_expression(file_path_str,type0)+"; end;\n";
+			}
 		}
 		else {
-			custom_script_m+=input_file_name+"="+file_name_str+";\n";
+			var file_path_str="'input_files/"+input_file_name+"."+(input_file.file_type)+"'";
+			custom_script_m+=input_file_name+"="+create_read_file_expression(file_path_str,input_file.file_type);
 		}
 	}
 	for (var output_file_name in output_files) {
@@ -78,8 +87,10 @@ function create_wisdm_processor_octave(params) {
 		var file_name_str="'output_files/"+output_file_name+"."+(output_file.file_type)+"'";
 		
 		if (output_file.file_type=='mda') {
+			//
 		}
 		else if (output_file.file_type=='nii') {
+			//
 		}
 		else {
 			custom_script_m+=output_file_name+"="+file_name_str+";\n";
@@ -165,6 +176,18 @@ function create_wisdm_processor_octave(params) {
 		output_files:output_files
 	};
 	return processor;
+
+	function create_read_file_expression(file_path_str,file_type) {
+		if (file_type=='mda') {
+			return "readArray("+file_path_str+")";
+		}
+		else if (file_type=='nii') {
+			return "readNii("+file_path_str+")";
+		}
+		else {
+			return file_path_str;
+		}
+	}
 }
 
 

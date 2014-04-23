@@ -141,6 +141,8 @@ function ProcessDatabase() {
 		var processor_ids_to_save={};
 		for (var process_id in processes) {
 			var process=processes[process_id];
+			console.log('PROCESS:::::::');
+			console.log(JSON.stringify(process.input_files));
 			var P0={};
 			P0.input_files=process.input_files||{};
 			P0.input_parameters=common.extend(true,{},process.input_parameters||{});
@@ -590,7 +592,15 @@ function ProcessDatabase() {
 		var input_files=process.input_files||{};
 		var input_file_list=[];
 		for (var input_file_name in input_files) {
-			input_file_list.push(input_files[input_file_name]);
+			var input_file=input_files[input_file_name];
+			if (input_file.length) {
+				for (var j=0; j<input_file.length; j++) {
+					input_file_list.push(input_file[j]);
+				}
+			}
+			else {
+				input_file_list.push(input_file);
+			}
 		}
 
 		var is_ready=true;

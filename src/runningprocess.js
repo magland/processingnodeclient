@@ -130,6 +130,78 @@ function RunningProcess() {
 			},cb_create_input_parameters,5);
 		}
 		
+		function do_write_input_file(path0,input_file_name,input_file,cb00) {
+			if (input_file.length) {
+				//this must be an array (or list) of input files
+				var path1=path0+'/'+input_file_name;
+				common.mkdir(path1,function(tmp1) {
+					common.write_text_file(path1+'/length',input_file.length,function(tmp2) {
+						if (!tmp2.success) {
+							cb00({success:false,error:'Unable to write length text file.'});
+							return;
+						}
+						var indices=[];
+						for (var ii=0; ii<input_file.length; ii++) indices.push(ii);
+						common.for_each_async(indices,function(ii,cb11) {
+							do_write_input_file(path1,ii,input_file[ii],cb11);
+						},function(tmp777) {
+							cb00(tmp777);
+						},1);
+					});
+				});
+			}
+			else {
+				var path=path0+'/'+input_file_name+'.'+input_file.file_type;
+				if (input_file.content) {
+					common.write_text_file(path,input_file.content,function(tmp) {
+						if (!tmp.success) {
+							report_error(cb00,'Unable to write input file: '+input_file_name);
+							return;
+						}
+						cb00({success:true});
+					});
+				}
+				else if (input_file.process_id) {
+					DB.setCollection('processes');
+					DB.find({_id:input_file.process_id},{},function(err,docs) {
+						if ((err)||(docs.length===0)) {
+							report_error(cb00,'Unable to find process for input file: '+input_file_name);
+							return;
+						}
+						if (docs.length>1) {
+							report_error(cb00,'Unexpected error, found more than one process with id: '+input_file.process_id);
+							return;
+						}
+						var process0=docs[0];
+						if (process0.status!='finished') {
+							report_error(cb00,'Unexpected error, process for input file is not finished: '+input_file_name);
+							return;
+						}
+						var output_files0=process0.output_files||{};
+						if (!(input_file.output_name in output_files0)) {
+							report_error(cb00,'Unexpected error, output name not found in process outputs: '+input_file.output_name);
+							return;
+						}
+						var output_file0=output_files0[input_file.output_name];
+						if (!(output_file0.checksum)) {
+							report_error(cb00,'Unexpected error, checksum not found in output of process: '+input_file.output_name);
+							return;
+						}
+						hard_link_file(m_data_file_path+'/'+output_file0.checksum+'.'+output_file0.file_type,path,function(tmp) {
+							if (!tmp.success) {
+								report_error(cb00,'Problem linking file while creating input: '+tmp.error);
+								return;
+							}
+							cb00({success:true});
+						});						
+					});
+				}
+				else {
+					report_error(cb00,'content and process_id are empty.'+JSON.stringify(input_file));
+				}
+			}
+		}
+		
 		function create_input_files(cb_create_input_files) {
 			m_process_status='create_input_files';
 			var input_files=m_process.input_files||{};
@@ -137,54 +209,9 @@ function RunningProcess() {
 			for (var key in input_files) input_file_names.push(key);
 			common.for_each_async(input_file_names,function(input_file_name,cb) {
 				var input_file=input_files[input_file_name];
-				var path=m_process_working_path+'/input_files/'+input_file_name+'.'+input_file.file_type;
-				if (input_file.content) {
-					common.write_text_file(path,input_file.content,function(tmp) {
-						if (!tmp.success) {
-							report_error(cb,'Unable to write input file: '+input_file_name);
-							return;
-						}
-						cb({success:true});
-					});
-				}
-				else if (input_file.process_id) {
-					DB.setCollection('processes');
-					DB.find({_id:input_file.process_id},{},function(err,docs) {
-						if ((err)||(docs.length===0)) {
-							report_error(cb,'Unable to find process for input file: '+input_file_name);
-							return;
-						}
-						if (docs.length>1) {
-							report_error(cb,'Unexpected error, found more than one process with id: '+input_file.process_id);
-							return;
-						}
-						var process0=docs[0];
-						if (process0.status!='finished') {
-							report_error(cb,'Unexpected error, process for input file is not finished: '+input_file_name);
-							return;
-						}
-						var output_files0=process0.output_files||{};
-						if (!(input_file.output_name in output_files0)) {
-							report_error(cb,'Unexpected error, output name not found in process outputs: '+input_file.output_name);
-							return;
-						}
-						var output_file0=output_files0[input_file.output_name];
-						if (!(output_file0.checksum)) {
-							report_error(cb,'Unexpected error, checksum not found in output of process: '+input_file.output_name);
-							return;
-						}
-						hard_link_file(m_data_file_path+'/'+output_file0.checksum+'.'+output_file0.file_type,path,function(tmp) {
-							if (!tmp.success) {
-								report_error(cb,'Problem linking file while creating input: '+tmp.error);
-								return;
-							}
-							cb({success:true});
-						});						
-					});
-				}
-				else {
-					report_error(cb,'content and process_id are empty.');
-				}
+				do_write_input_file(m_process_working_path+'/input_files',input_file_name,input_file,function(tmp00) {
+					cb(tmp00);
+				});
 			},cb_create_input_files,5);
 		}
 	}
