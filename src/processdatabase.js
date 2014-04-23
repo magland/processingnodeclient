@@ -141,8 +141,6 @@ function ProcessDatabase() {
 		var processor_ids_to_save={};
 		for (var process_id in processes) {
 			var process=processes[process_id];
-			console.log('PROCESS:::::::');
-			console.log(JSON.stringify(process.input_files));
 			var P0={};
 			P0.input_files=process.input_files||{};
 			P0.input_parameters=common.extend(true,{},process.input_parameters||{});
