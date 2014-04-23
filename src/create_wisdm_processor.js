@@ -49,10 +49,16 @@ function create_wisdm_processor_octave(params) {
 		var file_name_str="'input_parameters/"+input_parameter_name+".txt'";
 		custom_script_m+=input_parameter_name+"=read_text_file("+file_name_str+");\n";
 		if (input_parameter.parameter_type=='int') {
-			custom_script_m+=input_parameter_name+"=floor(str2double("+input_parameter_name+"));";
+			custom_script_m+=input_parameter_name+"=floor(str2double("+input_parameter_name+"));\n";
 		}
 		else if (input_parameter.parameter_type=='real') {
-			custom_script_m+=input_parameter_name+"=str2double("+input_parameter_name+");";
+			custom_script_m+=input_parameter_name+"=str2double("+input_parameter_name+");\n";
+		}
+		else if (input_parameter.parameter_type=='LIST<int>') {
+			custom_script_m+=input_parameter_name+"=strread("+input_parameter_name+",'%d','delimiter',',');\n";
+		}
+		else if (input_parameter.parameter_type=='LIST<real>') {
+			custom_script_m+=input_parameter_name+"=strread("+input_parameter_name+",'%f','delimiter',',');\n";
 		}
 		else {
 		}

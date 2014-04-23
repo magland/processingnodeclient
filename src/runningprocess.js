@@ -115,6 +115,27 @@ function RunningProcess() {
 			});
 		}
 		
+		function format_input_parameter_value(input_parameter) {
+			if (input_parameter.parameter_type=='LIST<int>') {
+				var list=input_parameter.value;
+				var str='';
+				for (var i=0; i<list.length; i++) {
+					if (i>0) str+=',';
+					str+=list[i];
+				}
+				return str;
+			}
+			else if (input_parameter.parameter_type=='LIST<real>') {
+				var list=input_parameter.value;
+				var str='';
+				for (var i=0; i<list.length; i++) {
+					if (i>0) str+=',';
+					str+=list[i];
+				}
+				return str;
+			}
+			else return input_parameter.value||'';
+		}
 		function create_input_parameters(cb_create_input_parameters) {
 			m_process_status='create_input_parameters';
 			var input_parameters=m_process.input_parameters||{};
@@ -123,7 +144,7 @@ function RunningProcess() {
 			common.for_each_async(input_parameter_names,function(input_parameter_name,cb) {
 				var input_parameter=input_parameters[input_parameter_name];
 				var path=m_process_working_path+'/input_parameters/'+input_parameter_name+'.txt';
-				common.write_text_file(path,input_parameter.value||'',function(tmp) {
+				common.write_text_file(path,format_input_parameter_value(input_parameter),function(tmp) {
 					if (!tmp.success) {cb(tmp); return;}
 					cb({success:true});
 				});
