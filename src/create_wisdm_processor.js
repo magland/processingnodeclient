@@ -78,7 +78,7 @@ function create_wisdm_processor_octave(params) {
 		}
 		else {
 			var file_path_str="'input_files/"+input_file_name+"."+(input_file.file_type)+"'";
-			custom_script_m+=input_file_name+"="+create_read_file_expression(file_path_str,input_file.file_type);
+			custom_script_m+=input_file_name+"="+create_read_file_expression(file_path_str,input_file.file_type)+";\n";
 		}
 	}
 	for (var output_file_name in output_files) {
