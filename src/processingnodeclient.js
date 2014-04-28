@@ -79,6 +79,9 @@ function ProcessingNodeClient() {
 		}
 		
 		m_process_database.handleProcesses(function(tmp) {
+			if ((tmp.num_queued)||(tmp.num_launched)||(tmp.num_completed)) {
+				send_signal({signal_name:'processes_handled',num_queued:tmp.num_queued,num_launched:tmp.num_launched,num_completed:tmp.num_completed});
+			}
 			var timeout_ms=3000;
 			setTimeout(periodic_handle_processes,timeout_ms);
 		});
@@ -121,6 +124,11 @@ function ProcessingNodeClient() {
 			}
 			callback({success:true,access:(docs[0]||{}).access||null});
 		});
+	}
+	function send_signal(signal) {
+		if (!m_socket) return;
+		signal.command='signal';
+		m_socket.sendMessage(signal);
 	}
 	function _connectToServer(host,port,callback) {
 		m_socket=new WisdmSocket();

@@ -42,6 +42,10 @@ function DatabaseManager(database_name,database_port) {
 		});
 	}
 	function _insert(doc,callback) {
+		if ((typeof(doc.length)!='undefined')&&(doc.length===0)) {
+			callback('');
+			return;
+		}
 		initialize_operation(function(tmp) {
 			if (!tmp.success) {
 				callback(tmp); return;
@@ -54,6 +58,10 @@ function DatabaseManager(database_name,database_port) {
 		});
 	}
 	function _save(doc,callback) {
+		if ((typeof(doc.length)!='undefined')&&(doc.length===0)) {
+			callback('');
+			return;
+		}
 		initialize_operation(function(tmp) {
 			if (!tmp.success) {
 				callback(tmp); return;

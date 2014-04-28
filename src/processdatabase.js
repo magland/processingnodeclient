@@ -254,8 +254,13 @@ function ProcessDatabase() {
 						report_error(callback,'Problem launching queued processes: '+tmp2.error);
 						return;
 					}
+					
+					var ret={success:true};
+					ret.num_queued=tmp1.num_queued;
+					ret.num_launched=tmp2.num_launched;
+					ret.num_completed=tmp3.num_completed;
 				
-					callback({success:true});
+					callback(ret);
 				});
 			});
 		});
@@ -290,7 +295,7 @@ function ProcessDatabase() {
 				function launch_next() {
 					if (ind>=queued_processes.length) {
 						if (num_launched>0) console.log (num_launched+' PROCESSES LAUNCHED.');
-						callback({success:true});
+						callback({success:true,num_launched:num_launched});
 						return;
 					}
 					
@@ -580,8 +585,10 @@ function ProcessDatabase() {
 					report_error(callback,tmp.error);
 					return;
 				}
-				if (num_queued>0) console.log (num_queued+' PROCESSES QUEUED.');
-				if (callback) callback({success:true});
+				if (num_queued>0) {
+					console.log (num_queued+' PROCESSES QUEUED.');
+				}
+				if (callback) callback({success:true,num_queued:num_queued});
 			},5);
 		});
 	}
@@ -650,7 +657,8 @@ function ProcessDatabase() {
 	}
 	
 	function handle_running_processes(callback) {
-
+		var num_completed=0;
+		
 		m_db.setCollection('processes');
 		m_db.find({status:'running'},{},function(err,running_processes) {
 			if (err) {
@@ -670,7 +678,14 @@ function ProcessDatabase() {
 				}
 			}
 			
-			common.for_each_async(running_processes,handle_running_process,callback,5);
+			common.for_each_async(running_processes,handle_running_process,function(tmp11) {
+				if (tmp11.success) {
+					callback({success:true,num_completed:num_completed});
+				}
+				else {
+					callback(tmp11);
+				}
+			},5);
 			
 		});
 		
@@ -679,6 +694,7 @@ function ProcessDatabase() {
 			if (process_id in m_running_processes) {
 				var RP=m_running_processes[process_id];
 				if ((RP.processStatus()=='finished')||(RP.processStatus()=='error')) {
+					num_completed++;
 					on_process_completed(process_id,cb);
 				}
 				else {
