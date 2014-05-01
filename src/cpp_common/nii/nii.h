@@ -7,7 +7,7 @@
 class nii_private;
 class nii {
 public:
-	friend nii_private;
+	friend class nii_private;
 	nii();
 	nii(const nii &X);
 	virtual ~nii();
