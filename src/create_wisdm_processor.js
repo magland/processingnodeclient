@@ -10,6 +10,9 @@ function create_wisdm_processor(params) {
 	else if ((processor_type=='octave')||(processor_type=='matlab')) {
 		return create_wisdm_processor_octave(params);
 	}
+	else if (processor_type=='cpp') {
+		return create_wisdm_processor_cpp(params);
+	}
 	else {
 		throw new Error('Unrecognized processor type: '+processor_type);
 	}
@@ -197,6 +200,234 @@ function create_wisdm_processor_octave(params) {
 		}
 	}
 }
+
+function create_wisdm_processor_cpp(params) {
+	var input_parameters=params.input_parameters||{};
+	var input_files=params.input_files||{};
+	var output_files=params.output_files||{};
+	var the_requires=params.requires||[];
+	var using_nii=false;
+	
+	var main_sh='';
+	main_sh+="working_path=$PWD\n";
+	main_sh+="cd $1\n";
+	main_sh+="rm -f bin/custom_cpp\n";
+	main_sh+="qmake\n";
+	main_sh+="make\n";
+	main_sh+="cd $working_path\n";
+	main_sh+="$1/bin/custom_cpp >stdout.txt 2>stderr.txt\n";
+	
+	main_sh+="rc=$?\n";
+	main_sh+="if [[ $rc != 0 ]] ; then\n";
+	main_sh+="  echo \"error: process crashed.\" > status.txt\n";
+	main_sh+="  cat stderr.txt >> status.txt\n";
+	main_sh+="  exit $rc\n";
+	main_sh+="fi\n";
+	main_sh+="cat stderr.txt\n";
+	main_sh+="cat stdout.txt\n";
+	
+	var processor_files=[];
+	var path0=__dirname+'/cpp'; 
+	var files=fs.readdirSync(path0);
+	files.forEach(function(file) {
+		var txt0=fs.readFileSync(path0+'/'+file,'utf8');
+		processor_files.push({path:file,content:txt0});
+	});
+	the_requires.forEach(function(the_require) {
+		processor_files.push({path:the_require.path,content:the_require.content});
+	});
+	
+	var initialization_code='';
+	var finalization_code='';
+	for (var input_parameter_name in input_parameters) {
+		var input_parameter=input_parameters[input_parameter_name];
+		var file_name_str="\"input_parameters/"+input_parameter_name+".txt\"";
+		if (input_parameter.parameter_type=='int') {
+			initialization_code+="int "+input_parameter_name+"=read_text_file("+file_name_str+").toInt();\n";
+		}
+		else if (input_parameter.parameter_type=='real') {
+			initialization_code+="double "+input_parameter_name+"=read_text_file("+file_name_str+").toDouble();\n";
+		}
+		else if (input_parameter.parameter_type=='string') {
+			initialization_code+="QString "+input_parameter_name+"=read_text_file("+file_name_str+");\n";
+		}
+		else if (input_parameter.parameter_type=='LIST<int>') {
+			//custom_script_m+=input_parameter_name+"=strread("+input_parameter_name+",'%d','delimiter',',');\n";
+		}
+		else if (input_parameter.parameter_type=='LIST<real>') {
+			//custom_script_m+=input_parameter_name+"=strread("+input_parameter_name+",'%f','delimiter',',');\n";
+		}
+		else {
+		}
+	}
+	for (var input_file_name in input_files) {
+		var input_file=input_files[input_file_name];
+		
+		/*
+		if (input_file.file_type.indexOf('LIST<')===0) {
+			var ind1=input_file.file_type.indexOf('<');
+			var ind2=input_file.file_type.indexOf('>');
+			if ((ind1<0)||(ind2<0)||(ind2<ind1)) {
+				console.error('Improper input type: '+input_file.file_type);
+			}
+			else {
+				var type0=input_file.file_type.slice(ind1+1,ind2);
+				var length_path_str="'input_files/"+input_file_name+"/length'";
+				var file_path_str="sprintf('input_files/%s/%d.%s','"+input_file_name+"',j_-1,'"+type0+"')";
+				custom_script_m+="disp('reading length');\n";
+				custom_script_m+="len_=floor(str2double(read_text_file("+length_path_str+")));\n";
+				custom_script_m+="disp(len_);\n";
+				custom_script_m+="for j_=1:len_ disp(j_); disp("+file_path_str+"); "+input_file_name+"{j_}="+create_read_file_expression(file_path_str,type0)+"; end;\n";
+			}
+		}
+		else {
+		*/
+		var file_path_str="\"input_files/"+input_file_name+"."+(input_file.file_type)+"\"";
+		if (input_file.file_type=='mda') {
+			initialization_code+="mda "+input_file_name+"; "+input_file_name+".load("+file_path_str+");\n";
+		}
+		else if (input_file.file_type=='nii') {
+			using_nii=true;
+			initialization_code+="nii "+input_file_name+"; "+input_file_name+".load("+file_path_str+");\n";
+		}
+		else {
+			initialization_code+="QString "+input_file_name+"="+file_path_str+";\n";
+		}
+		/*}*/
+	}
+	for (var output_file_name in output_files) {
+		var output_file=output_files[output_file_name];
+		
+		var file_name_str="\"output_files/"+output_file_name+"."+(output_file.file_type)+"\"";
+		
+		if (output_file.file_type=='mda') {
+			initialization_code+="mda "+output_file_name+";";
+		}
+		else if (output_file.file_type=='nii') {
+			using_nii=true;
+			initialization_code+="nii "+output_file_name+";";
+		}
+		else {
+			initialization_code+="QString "+output_file_name+"="+file_name_str+";\n";
+		}
+	}
+	
+	for (var output_file_name in output_files) {
+		var output_file=output_files[output_file_name];
+		
+		var file_name_str="\"output_files/"+output_file_name+"."+(output_file.file_type)+"\"";
+		
+		if (output_file.file_type=='mda') {
+			finalization_code+=output_file_name+".save("+file_name_str+");\n";
+		}
+		else if (output_file.file_type=='nii') {
+			using_nii=true;
+			finalization_code+=output_file_name+".save("+file_name_str+");\n";
+		}
+		else {
+			
+		}
+	}
+	
+	var includes_code='';
+	if (using_nii) includes_code+='#include "nii.h"\n';
+	
+	for (var i=0; i<processor_files.length; i++) {
+		var content=preprocess_template_file(processor_files[i].path,processor_files[i].content);
+		processor_files[i].content=content;
+	}
+	
+	function preprocess_template_file(file,txt) {
+		if (file=='custom_cpp.pro') {
+			txt=replace_all(txt,'$destdir$','bin');
+			txt=replace_all(txt,'$target$','custom_cpp');
+			txt=replace_all(txt,'$headers$','');
+			txt=replace_all(txt,'$sources$','');
+			txt=replace_all(txt,'$commondir$','/home/magland/wisdm/processingnodeclient/src/cpp_common'); //need to fix this path!
+			var using_nii_code='';
+			if (using_nii) using_nii_code='USING_NII=true';
+			txt=replace_all(txt,'$using_nii$',using_nii_code);
+		}
+		else if (file=='custom_cpp.cpp') {
+			txt=replace_all(txt,'$includes$',includes_code);
+			txt=replace_all(txt,'$initialization$',initialization_code);
+			txt=replace_all(txt,'$script$',params.code);
+			txt=replace_all(txt,'$finalization$',finalization_code);
+		}
+		return txt;
+	}
+	function replace_all(str,str1,str2) {
+		return str.split(str1).join(str2);
+	}
+	
+		
+	
+	
+	//custom_script_m+="write_text_file('status.txt','finished');";
+	
+	
+	/*if (matlab_mode) {
+		custom_script_m+="catch err\n";
+		custom_script_m+="\tdisp(err.message);\n";
+		custom_script_m+="\tdisp(err.stack);\n";
+		custom_script_m+="\tdisp(err);\n";
+		custom_script_m+="end\n\n";
+	}
+	else {
+		custom_script_m+="catch\n";
+		custom_script_m+="\tmsg=lasterror.message;\n";
+		custom_script_m+="\tif (length(lasterror.stack)>0) msg=strcat(msg,' (',lasterror.stack(1).name,')'); end;\n";
+		custom_script_m+="\tdisp(lasterror.message);\n";
+		custom_script_m+="\tdisp(lasterror.stack);\n";
+		custom_script_m+="\twrite_text_file('status.txt',strcat('error: ',msg));\n";
+		custom_script_m+="end\n\n";
+	}*/
+	
+	//custom_script_m+="end\n\n";
+	
+	/*custom_script_m+="function text=read_text_file(fname)\n";
+	custom_script_m+="fid000=fopen(fname, 'r');\n";
+	custom_script_m+="text=(fread(fid000,'*char'))';\n";
+	custom_script_m+="fclose(fid000);\n";
+	custom_script_m+="end\n\n";
+	
+	custom_script_m+="function write_text_file(fname,txt)\n";
+	custom_script_m+="fid000=fopen(fname, 'w');\n";
+	custom_script_m+="fprintf(fid000,txt);\n";
+	custom_script_m+="fclose(fid000);\n";
+	custom_script_m+="end\n\n";*/
+	
+	
+	processor_files.push({path:'main.sh',content:main_sh});
+	
+	var tmp000=common.extend(true,{},params); //the id will depend on the params
+	delete(tmp000.processor_name); //but don't let the id depend on the name!
+	delete(tmp000.processor_id); //and don't let it depend on the empty processor id field
+	
+	var processor={
+		processor_id:params.processor_id||compute_sha1(JSON.stringify(tmp000)),
+		processor_type:params.processor_type,
+		processor_name:params.processor_name,
+		files:processor_files,
+		input_parameters:input_parameters,
+		input_files:input_files,
+		output_files:output_files
+	};
+	return processor;
+
+	/*function create_read_file_expression(file_path_str,file_type) {
+		if (file_type=='mda') {
+			return "readArray("+file_path_str+")";
+		}
+		else if (file_type=='nii') {
+			return "readNii("+file_path_str+")";
+		}
+		else {
+			return file_path_str;
+		}
+	}*/
+}
+
 
 
 function create_wisdm_processor_bash(params) {

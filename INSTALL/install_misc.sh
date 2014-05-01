@@ -1,1 +1,1 @@
-apt-get install unzip
+apt-get install unzip libqjson-dev

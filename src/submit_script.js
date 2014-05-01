@@ -78,7 +78,7 @@ function submit_script(node_path,request,callback) {
 						'processdatabase.js','runningprocess.js','common.js','wisdmusage.js',
 						'databasemanager.js'
 					];
-					var folders_to_copy=['octave'];
+					var folders_to_copy=['octave','cpp'];
 					copy_files(files_to_copy,__dirname,node_path+'/_WISDM/scripts/'+script_id,function(tmp05) {
 						if (!tmp05.success) {
 							callback2(tmp05);
