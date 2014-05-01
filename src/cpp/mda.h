@@ -6,7 +6,7 @@
 class mda_private;
 class mda {
 public:
-	friend mda_private;
+	friend class mda_private;
 	mda();
 	mda(const mda &X);
 	virtual ~mda();
