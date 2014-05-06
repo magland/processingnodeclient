@@ -12,6 +12,11 @@ SOURCES += custom_cpp.cpp $sources$
 HEADERS += textfile.h mda.h
 SOURCES += textfile.cpp mda.cpp
 
+#QJSON
+LIBS += -lqjson
+HEADERS += qjson.h
+SOURCES += qjson.cpp
+
 $using_nii$
 
 #nii

@@ -332,17 +332,25 @@ function create_wisdm_processor_cpp(params) {
 	var includes_code='';
 	if (using_nii) includes_code+='#include "nii.h"\n';
 	
-	for (var i=0; i<processor_files.length; i++) {
-		var content=preprocess_template_file(processor_files[i].path,processor_files[i].content);
-		processor_files[i].content=content;
-	}
+	var headers='';
+	var sources='';
+	the_requires.forEach(function(the_require) {
+		var suf=common.get_file_suffix(the_require.path);
+		if ((suf=='h')||(suf=='hpp')) {
+			includes_code+='#include "'+the_require.path+'"\n';
+			headers+=the_require.path+' ';
+		}
+		else if ((suf=='c')||(suf=='cpp')||(suf=='cxx')) {
+			sources+=the_require.path+' ';
+		}
+	});
 	
 	function preprocess_template_file(file,txt) {
 		if (file=='custom_cpp.pro') {
 			txt=replace_all(txt,'$destdir$','bin');
 			txt=replace_all(txt,'$target$','custom_cpp');
-			txt=replace_all(txt,'$headers$','');
-			txt=replace_all(txt,'$sources$','');
+			txt=replace_all(txt,'$headers$',headers);
+			txt=replace_all(txt,'$sources$',sources);
 			txt=replace_all(txt,'$commondir$','/home/magland/wisdm/processingnodeclient/src/cpp_common'); //need to fix this path!
 			var using_nii_code='';
 			if (using_nii) using_nii_code='USING_NII=true';
@@ -360,6 +368,10 @@ function create_wisdm_processor_cpp(params) {
 		return str.split(str1).join(str2);
 	}
 	
+	for (var i=0; i<processor_files.length; i++) {
+		var content=preprocess_template_file(processor_files[i].path,processor_files[i].content);
+		processor_files[i].content=content;
+	}
 		
 	
 	

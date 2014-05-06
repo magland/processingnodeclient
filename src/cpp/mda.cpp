@@ -7,8 +7,9 @@ public:
 	int m_N1,m_N2,m_N3,m_N4;
 	long m_NN;
 	float *m_float32_data;
+	float *m_float32_imag_data;
 	quint8 *m_uint8_data;
-	QString m_data_type; //"uint8", "float32"
+	QString m_data_type; //"uint8", "float32", "complex"
 	
 	void initialize_data();
 	void cleanup_data();
@@ -16,11 +17,13 @@ public:
 	long get_index1(int i1,int i2,int i3,int i4);
 	void allocateUint8(int N1,int N2,int N3,int N4);
 	void allocateFloat32(int N1,int N2,int N3,int N4);
+	void allocateComplex(int N1,int N2,int N3,int N4);
 };
 void mda_private::initialize_data() {
 	m_N1=m_N2=m_N3=m_N4=0;
 	m_NN=0;
 	m_float32_data=0;
+	m_float32_imag_data=0;
 	m_uint8_data=0;
 	m_data_type="";
 }
@@ -28,15 +31,24 @@ void mda_private::cleanup_data() {
 	m_N1=m_N2=m_N3=m_N4=0;
 	m_NN=0;
 	if (m_float32_data) delete m_float32_data;
+	if (m_float32_imag_data) delete m_float32_imag_data;
 	if (m_uint8_data) delete m_uint8_data;
+	m_float32_imag_data=0;
 	m_float32_data=0;
 	m_uint8_data=0;
 	m_data_type="";
 }
 void mda_private::copy_from(const mda &X) {
 	if (X.d->m_float32_data) {
-		allocateFloat32(X.d->m_N1,X.d->m_N2,X.d->m_N3,X.d->m_N4);
-		for (long i=0; i<m_NN; i++) m_float32_data[i]=X.d->m_float32_data[i];
+		if (X.d->m_float32_imag_data) {
+			allocateComplex(X.d->m_N1,X.d->m_N2,X.d->m_N3,X.d->m_N4);
+			for (long i=0; i<m_NN; i++) m_float32_data[i]=X.d->m_float32_data[i];
+			for (long i=0; i<m_NN; i++) m_float32_imag_data[i]=X.d->m_float32_imag_data[i];
+		}
+		else {
+			allocateFloat32(X.d->m_N1,X.d->m_N2,X.d->m_N3,X.d->m_N4);
+			for (long i=0; i<m_NN; i++) m_float32_data[i]=X.d->m_float32_data[i];
+		}
 	}
 	else if (X.d->m_uint8_data) {
 		allocateUint8(X.d->m_N1,X.d->m_N2,X.d->m_N3,X.d->m_N4);
@@ -68,6 +80,20 @@ void mda_private::allocateFloat32(int N1,int N2,int N3,int N4) {
 	if (m_NN>0) m_float32_data=new float[m_NN];
 	else m_float32_data=new float[1];
 	m_data_type="float32";
+}
+void mda_private::allocateComplex(int N1,int N2,int N3,int N4) {
+	cleanup_data();
+	m_N1=N1; m_N2=N2; m_N3=N3; m_N4=N4;
+	m_NN=N1*N2*N3*N4;
+	if (m_NN>0) {
+		m_float32_data=new float[m_NN];
+		m_float32_imag_data=new float[m_NN];
+	}
+	else {
+		m_float32_data=new float[1];
+		m_float32_imag_data=new float[1];
+	}
+	m_data_type="complex";
 }
 
 mda::mda() {
@@ -154,6 +180,23 @@ bool mda::load(const QString &fname) {
 			return false;
 		}
 	}
+	else if (data_type==MDA_TYPE_COMPLEX) {
+		allocateComplex(hold_dims[0],hold_dims[1],hold_dims[2],hold_dims[3]);
+		float *tmp=new float[d->m_NN*2];
+		if (fread(tmp,num_bytes,d->m_NN*2,inf)!=d->m_NN*2) {
+			qWarning() << "Problem reading mda data";
+			delete tmp;
+			fclose(inf);
+			return false;
+		}
+		float *data0=(float *)data();
+		float *data1=(float *)dataImag();
+		for (int i=0; i<d->m_NN; i++) {
+			data0[i]=tmp[i*2];
+			data1[i]=tmp[i*2+1];
+		}
+		delete tmp;
+	}
 	else {
 		qWarning() << "For now, unable to support this mda type: " << data_type;
 		fclose(inf);
@@ -180,8 +223,14 @@ bool mda::save(const QString &fname) const {
 		data_type=MDA_TYPE_UINT8;
 	}
 	else if (d->m_float32_data) {
-		hold_num_bytes=4;
-		data_type=MDA_TYPE_FLOAT32;
+		if (!d->m_float32_imag_data) {
+			hold_num_bytes=4;
+			data_type=MDA_TYPE_FLOAT32;
+		}
+		else {
+			hold_num_bytes=8;
+			data_type=MDA_TYPE_COMPLEX;
+		}
 	}
 	else {
 		qWarning() << "Problem in save (166)";
@@ -211,6 +260,22 @@ bool mda::save(const QString &fname) const {
 			return false;
 		}
 	}
+	else if (data_type==MDA_TYPE_COMPLEX) {
+		float *data0=d->m_float32_data;
+		float *data1=d->m_float32_imag_data;
+		float *tmp=new float[d->m_NN*2];
+		for (int i=0; i<d->m_NN; i++) {
+			tmp[i*2]=data0[i];
+			tmp[i*2+1]=data1[i];
+		}
+		if (fwrite(tmp,hold_num_bytes,d->m_NN,outf)!=d->m_NN) {
+			qWarning() << "Problem writing mda data";
+			delete tmp;
+			fclose(outf);
+			return false;
+		}
+		delete tmp;
+	}
 	else {
 		qWarning() << "For now, unable to support this mda type (in save): " << data_type;
 		fclose(outf);
@@ -233,6 +298,9 @@ void mda::allocateUint8(int N1,int N2,int N3,int N4) {
 void mda::allocateFloat32(int N1,int N2,int N3,int N4) {
 	d->allocateFloat32(N1,N2,N3,N4);
 }
+void mda::allocateComplex(int N1,int N2,int N3,int N4) {
+	d->allocateComplex(N1,N2,N3,N4);
+}
 QString mda::dataType() const {
 	return d->m_data_type;
 }
@@ -243,11 +311,34 @@ float mda::getValue(int i1,int i2,int i3,int i4) const {
 	else if (d->m_uint8_data) return d->m_uint8_data[ii];
 	else return 0;
 }
+float mda::getValueImag(int i1,int i2,int i3,int i4) const {
+	if (!d->m_float32_imag_data) return 0;
+	long ii=d->get_index1(i1,i2,i3,i4);
+	if (ii<0) return 0;
+	return d->m_float32_imag_data[ii];
+}
 void mda::setValue(float val,int i1,int i2,int i3,int i4) {
 	long ii=d->get_index1(i1,i2,i3,i4);
 	if (ii<0) return;
 	if (d->m_float32_data) d->m_float32_data[ii]=val;
 	else if (d->m_uint8_data) d->m_uint8_data[ii]=(unsigned char)val;
+}
+void mda::setValueImag(float val,int i1,int i2,int i3,int i4) {
+	if (!d->m_float32_data) {
+		qWarning() << "Cannot set imaginary part because d->m_float32_data is null.";
+		return;
+	}
+	if (!d->m_NN) {
+		qWarning() << "Cannot set imaginary part because d->m_NN is zero.";
+		return;
+	}
+	if (!d->m_float32_imag_data) {
+		d->m_float32_imag_data=new float[d->m_NN];
+		for (int i=0; i<d->m_NN; i++) d->m_float32_imag_data[i]=0;
+	}
+	long ii=d->get_index1(i1,i2,i3,i4);
+	if (ii<0) return;
+	d->m_float32_imag_data[ii]=val;
 }
 int mda::N1() const {
 	return d->m_N1;
@@ -264,5 +355,9 @@ int mda::N4() const {
 void *mda::data() {
 	if (d->m_float32_data) return d->m_float32_data;
 	if (d->m_uint8_data) return d->m_uint8_data;
+	return 0;
+}
+void *mda::dataImag() {
+	if (d->m_float32_imag_data) return d->m_float32_imag_data;
 	return 0;
 }
