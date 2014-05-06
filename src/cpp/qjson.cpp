@@ -1,7 +1,7 @@
 #include "qjson.h"
 
-#include "qjson/parser.h"
-#include "qjson/serializer.h"
+#include "parser.h"
+#include "serializer.h"
 #include <QDebug>
 #include <QMap>
 #include <QVariant>
