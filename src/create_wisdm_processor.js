@@ -156,7 +156,7 @@ function create_wisdm_processor_octave(params) {
 	
 	custom_script_m+="function write_text_file(fname,txt)\n";
 	custom_script_m+="fid000=fopen(fname, 'w');\n";
-	custom_script_m+="fprintf(fid000,txt);\n";
+	custom_script_m+="fprintf(fid000,'%s',txt);\n";
 	custom_script_m+="fclose(fid000);\n";
 	custom_script_m+="end\n\n";
 	
@@ -405,7 +405,7 @@ function create_wisdm_processor_cpp(params) {
 	
 	custom_script_m+="function write_text_file(fname,txt)\n";
 	custom_script_m+="fid000=fopen(fname, 'w');\n";
-	custom_script_m+="fprintf(fid000,txt);\n";
+	custom_script_m+="fprintf(fid000,'%s',txt);\n";
 	custom_script_m+="fclose(fid000);\n";
 	custom_script_m+="end\n\n";*/
 	
