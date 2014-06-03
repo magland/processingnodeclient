@@ -79,10 +79,11 @@ function ProcessingNodeClient() {
 		}
 		
 		m_process_database.handleProcesses(function(tmp) {
+			var timeout_ms=3000;
 			if ((tmp.num_queued)||(tmp.num_launched)||(tmp.num_completed)) {
 				send_signal({signal_name:'processes_handled',num_queued:tmp.num_queued,num_launched:tmp.num_launched,num_completed:tmp.num_completed});
+				timeout_ms=200;
 			}
-			var timeout_ms=3000;
 			setTimeout(periodic_handle_processes,timeout_ms);
 		});
 	}

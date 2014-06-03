@@ -239,31 +239,45 @@ function ProcessDatabase() {
 	}
 	
 	function _handleProcesses(callback) {
-		queue_pending_processes_that_are_ready(function(tmp1) {
-			if (!tmp1.success) {
-				report_error(callback,'Problem queueing pending processes: '+tmp1.error);
-				return;
-			}
-			handle_running_processes(function(tmp3) { //perhaps important to handle running processes before launching queued processes, so we can make sure to first remove any running processes that are no longer in the database
-				if (!tmp3.success) {
-					report_error(callback,'Problem handling running processes: '+tmp3.error);
-					return;
-				}
-				launch_queued_processes_that_are_ready(function(tmp2) {
-					if (!tmp2.success) {
-						report_error(callback,'Problem launching queued processes: '+tmp2.error);
-						return;
-					}
-					
-					var ret={success:true};
-					ret.num_queued=tmp1.num_queued;
-					ret.num_launched=tmp2.num_launched;
-					ret.num_completed=tmp3.num_completed;
-				
-					callback(ret);
-				});
+		var ret={success:true};
+		ret.num_queued=0;
+		ret.num_launched=0;
+		ret.num_completed=0;
+		
+		//do it twice!
+		do_handle_processes(function() {
+			do_handle_processes(function() {
+				ret.success=true;
+				callback(ret);
 			});
 		});
+		
+		function do_handle_processes(callback2) {
+			queue_pending_processes_that_are_ready(function(tmp1) {
+				if (!tmp1.success) {
+					report_error(callback,'Problem queueing pending processes: '+tmp1.error);
+					return;
+				}
+				handle_running_processes(function(tmp3) { //perhaps important to handle running processes before launching queued processes, so we can make sure to first remove any running processes that are no longer in the database
+					if (!tmp3.success) {
+						report_error(callback,'Problem handling running processes: '+tmp3.error);
+						return;
+					}
+					launch_queued_processes_that_are_ready(function(tmp2) {
+						if (!tmp2.success) {
+							report_error(callback,'Problem launching queued processes: '+tmp2.error);
+							return;
+						}
+						
+						ret.num_queued+=tmp1.num_queued;
+						ret.num_launched+=tmp2.num_launched;
+						ret.num_completed+=tmp3.num_completed;
+					
+						callback2();
+					});
+				});
+			});
+		}
 	}
 	
 	function launch_queued_processes_that_are_ready(callback) {
