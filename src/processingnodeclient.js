@@ -11,6 +11,8 @@ var DATABASE=require('./databasemanager').DATABASE;
 WISDMUSAGE.startPeriodicWritePendingRecords();
 WISDMUSAGE.setCollectionName('processingnodeclient');
 
+var wisdmconfig=require('./wisdmconfig').wisdmconfig;
+
 function ProcessingNodeClient() {
 	var that=this;
 	
@@ -54,6 +56,7 @@ function ProcessingNodeClient() {
 		m_process_database.setProcessWorkingPath(m_node_path+'/_WISDM/working_processes');
 		m_process_database.setProcessorWorkingPath(m_node_path+'/_WISDM/working_processors');
 		m_process_database.setDataFilePath(m_node_path+'/_WISDM/data_files');
+		m_process_database.setMaxSimultaneousProcesses(wisdmconfig.processingnodeclient.max_simultaneous_processes||1);
 
 		setTimeout(function() {
 			if (callback) callback({success:true});
@@ -635,8 +638,6 @@ function ProcessingNodeClient() {
 	}
 	*/	
 }
-
-var wisdmconfig=require('./wisdmconfig').wisdmconfig;
 
 setTimeout(function() {
 	
