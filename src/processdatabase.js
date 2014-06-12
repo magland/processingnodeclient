@@ -22,7 +22,7 @@ function ProcessDatabase() {
 	this.setScriptOutput=function(output,callback) {_setScriptOutput(output,callback);};
 	this.find=function(collection,query,fields,callback) {_find(collection,query,fields,callback);};
 	this.remove=function(collection,selector,callback) {_remove(collection,selector,callback);};
-	this.setMaxSimultaneousProcesses(num) {m_max_simultaneous_processes=num;};
+	this.setMaxSimultaneousProcesses=function(num) {m_max_simultaneous_processes=num;};
 	
 	var m_db=null;
 	var m_database_name='';
