@@ -334,6 +334,7 @@ function create_wisdm_processor_cpp(params) {
 	
 	var headers='';
 	var sources='';
+	var pri_code='';
 	the_requires.forEach(function(the_require) {
 		var suf=common.get_file_suffix(the_require.path);
 		if ((suf=='h')||(suf=='hpp')) {
@@ -342,6 +343,9 @@ function create_wisdm_processor_cpp(params) {
 		}
 		else if ((suf=='c')||(suf=='cpp')||(suf=='cxx')) {
 			sources+=the_require.path+' ';
+		}
+		else if (suf=='pri') {
+			pri_code+='include('+the_require.path+')\n';
 		}
 	});
 	
@@ -362,6 +366,7 @@ function create_wisdm_processor_cpp(params) {
 			txt=replace_all(txt,'$script$',params.code);
 			txt=replace_all(txt,'$finalization$',finalization_code);
 		}
+		txt+='\n'+pri_code;
 		return txt;
 	}
 	function replace_all(str,str1,str2) {
