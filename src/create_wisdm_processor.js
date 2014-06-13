@@ -359,6 +359,7 @@ function create_wisdm_processor_cpp(params) {
 			var using_nii_code='';
 			if (using_nii) using_nii_code='USING_NII=true';
 			txt=replace_all(txt,'$using_nii$',using_nii_code);
+			txt+='\n'+pri_code;
 		}
 		else if (file=='custom_cpp.cpp') {
 			txt=replace_all(txt,'$includes$',includes_code);
@@ -366,7 +367,6 @@ function create_wisdm_processor_cpp(params) {
 			txt=replace_all(txt,'$script$',params.code);
 			txt=replace_all(txt,'$finalization$',finalization_code);
 		}
-		txt+='\n'+pri_code;
 		return txt;
 	}
 	function replace_all(str,str1,str2) {
