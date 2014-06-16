@@ -334,7 +334,6 @@ function create_wisdm_processor_cpp(params) {
 	
 	var headers='';
 	var sources='';
-	var pri_code='';
 	the_requires.forEach(function(the_require) {
 		var suf=common.get_file_suffix(the_require.path);
 		if ((suf=='h')||(suf=='hpp')) {
@@ -343,9 +342,6 @@ function create_wisdm_processor_cpp(params) {
 		}
 		else if ((suf=='c')||(suf=='cpp')||(suf=='cxx')) {
 			sources+=the_require.path+' ';
-		}
-		else if (suf=='pri') {
-			pri_code+='include('+the_require.path+')\n';
 		}
 	});
 	
@@ -359,7 +355,6 @@ function create_wisdm_processor_cpp(params) {
 			var using_nii_code='';
 			if (using_nii) using_nii_code='USING_NII=true';
 			txt=replace_all(txt,'$using_nii$',using_nii_code);
-			txt+='\n'+pri_code;
 		}
 		else if (file=='custom_cpp.cpp') {
 			txt=replace_all(txt,'$includes$',includes_code);

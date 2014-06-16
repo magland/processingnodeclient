@@ -17,9 +17,11 @@ function WisdmUsage() {
 	var m_collection_name='undefined';
 	
 	function _addRecord(record) {
+		/*/
 		var rec=JSON.parse(JSON.stringify(record));
 		rec.timestamp=(new Date()).getTime();
 		m_pending_records.push(rec);
+		*/
 	}
 	
 	function write_pending_records(callback) {
@@ -74,6 +76,7 @@ function WisdmUsage() {
 		});
 	}
 	function _getAllUsers(params,callback) {
+		/*
 		var date=params.date||get_current_date();
 		var DB=DATABASE('wisdmusage');
 		DB.setCollection('wisdmserver');
@@ -91,8 +94,10 @@ function WisdmUsage() {
 			users.sort();
 			callback({success:true,users:users});
 		});
+		*/
 	}
 	function _getUsage(params,callback) {
+		/*
 		var date=params.date||get_current_date();
 		var user_id=params.user_id||'';
 		var DB=DATABASE('wisdmusage');
@@ -104,20 +109,8 @@ function WisdmUsage() {
 			}
 			callback({success:true,records:docs});
 		});
+		*/
 	}
-	
-	/*
-	function open_database(params,callback) {
-		var db=new mongo.Db('wisdmusage', new mongo.Server('localhost',params.port||27017, {}), {safe:true});
-		db.open(function(err,db) {
-			if (err) {
-				if (callback) callback(err,null);
-			}
-			else {
-				if (callback) callback('',db);
-			}
-		});
-	}
-	*/
+
 }
 
