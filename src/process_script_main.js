@@ -18,28 +18,34 @@ var run_parameters=script_info.run_parameters||{};
 var WISDM_SUBMITTED_PROCESSES={};
 var WISDM_SUBMITTED_PROCESS_LIST=[]; //so we can keep track of the order of submission
 
-//////////////////////////////////////////////////////
-require('./custom_script').run(run_parameters);
-//////////////////////////////////////////////////////
+var Sync = require('sync'); //added on 7/17/14
 
-var num_processes=0;
-for (var key in WISDM_SUBMITTED_PROCESSES) num_processes++;
+Sync(function() {
 
-add_script_to_database(function(tmp0) {
-	if (!tmp0.success) {
-		console.error('Problem adding script to database: '+tmp0.error);
-	}
-
-	console.log ('Submitting '+num_processes+' processes...');
-	submit_all_processes(function(tmp) {
-		if (!tmp.success) {
-			console.error('Problem submitting processes: '+tmp.error);
-			process.exit(1);
+	//////////////////////////////////////////////////////
+	require('./custom_script').run.sync(run_parameters);
+	//////////////////////////////////////////////////////
+	
+	var num_processes=0;
+	for (var key in WISDM_SUBMITTED_PROCESSES) num_processes++;
+	
+	add_script_to_database(function(tmp0) {
+		if (!tmp0.success) {
+			console.error('Problem adding script to database: '+tmp0.error);
 		}
-		else {
-			finalize_and_write_submitted_processes(tmp.previous_statuses);
-		}
+	
+		console.log ('Submitting '+num_processes+' processes...');
+		submit_all_processes(function(tmp) {
+			if (!tmp.success) {
+				console.error('Problem submitting processes: '+tmp.error);
+				process.exit(1);
+			}
+			else {
+				finalize_and_write_submitted_processes(tmp.previous_statuses);
+			}
+		});
 	});
+
 });
 
 function finalize_and_write_submitted_processes(previous_statuses) {
