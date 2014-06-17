@@ -43,8 +43,8 @@ function check_finished() {
 setTimeout(check_finished,10);
 
 
+var num_processes=0;
 function next_step() {
-	var num_processes=0;
 	for (var key in WISDM_SUBMITTED_PROCESSES) num_processes++;
 	
 	add_script_to_database(function(tmp0) {
