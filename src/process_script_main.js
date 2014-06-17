@@ -7,6 +7,8 @@ var WISDMUSAGE=require('./wisdmusage').WISDMUSAGE;
 WISDMUSAGE.setCollectionName('processing_script');
 
 internal_functions.submitProcess=submitProcess;
+internal_functions.scriptStarted=scriptStarted;
+internal_functions.scriptFinished=scriptFinished;
 //internal_functions.getProcessingStatus=getProcessingStatus;
 
 var script_info=require('./custom_script').script_info||{};
@@ -14,6 +16,7 @@ var processing_node_id=script_info.processing_node_id;
 var script_id=script_info.script_id;
 var user_id=script_info.user_id;
 var run_parameters=script_info.run_parameters||{};
+var global_script_started=false;
 
 var WISDM_SUBMITTED_PROCESSES={};
 var WISDM_SUBMITTED_PROCESS_LIST=[]; //so we can keep track of the order of submission
@@ -23,26 +26,44 @@ var WISDM_SUBMITTED_PROCESS_LIST=[]; //so we can keep track of the order of subm
 //////////////////////////////////////////////////////
 require('./custom_script').run(run_parameters);
 //////////////////////////////////////////////////////
-
-var num_processes=0;
-for (var key in WISDM_SUBMITTED_PROCESSES) num_processes++;
-
-add_script_to_database(function(tmp0) {
-	if (!tmp0.success) {
-		console.error('Problem adding script to database: '+tmp0.error);
+var timer=new Date();
+function check_finished() {
+	if (!global_script_started) {
+		next_step();
 	}
-
-	console.log ('Submitting '+num_processes+' processes...');
-	submit_all_processes(function(tmp) {
-		if (!tmp.success) {
-			console.error('Problem submitting processes: '+tmp.error);
+	else {
+		var elapsed=(new Date())-timer;
+		if (elapsed>60*1000) {
+			console.log('Timeout waiting for axeipr to finish');
 			process.exit(1);
 		}
-		else {
-			finalize_and_write_submitted_processes(tmp.previous_statuses);
+		setTimeout(check_finished,10);
+	}
+}
+setTimeout(check_finished,10);
+
+
+function next_step() {
+	var num_processes=0;
+	for (var key in WISDM_SUBMITTED_PROCESSES) num_processes++;
+	
+	add_script_to_database(function(tmp0) {
+		if (!tmp0.success) {
+			console.error('Problem adding script to database: '+tmp0.error);
 		}
+	
+		console.log ('Submitting '+num_processes+' processes...');
+		submit_all_processes(function(tmp) {
+			if (!tmp.success) {
+				console.error('Problem submitting processes: '+tmp.error);
+				process.exit(1);
+			}
+			else {
+				finalize_and_write_submitted_processes(tmp.previous_statuses);
+			}
+		});
 	});
-});
+}
 
 function finalize_and_write_submitted_processes(previous_statuses) {
 	console.log ('Writing output...');
@@ -57,7 +78,7 @@ function finalize_and_write_submitted_processes(previous_statuses) {
 	WISDMUSAGE.writePendingRecords(function() {
 		setTimeout(function() {
 			process.exit(0);
-		},5000);
+		},100);
 	});
 }
 
@@ -161,6 +182,13 @@ function submitProcess(process) {
 		outputs[output_name]={process_id:process.process_id,output_name:output_name,file_type:output_file.file_type,processing_node_id:processing_node_id};
 	}
 	return {process_id:process.process_id,outputs:outputs};
+}
+
+function scriptStarted() {
+	global_script_started=true;
+}
+function scriptFinished() {
+	global_script_started=false;
 }
 
 function create_process_id(process) {
