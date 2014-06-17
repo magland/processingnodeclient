@@ -21,7 +21,7 @@ var WISDM_SUBMITTED_PROCESS_LIST=[]; //so we can keep track of the order of subm
 
 
 //////////////////////////////////////////////////////
-require('./custom_script').run.sync(run_parameters);
+require('./custom_script').run(run_parameters);
 //////////////////////////////////////////////////////
 
 var num_processes=0;
