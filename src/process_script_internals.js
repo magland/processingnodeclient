@@ -21,8 +21,8 @@ function scriptFinished() {
 }*/
 
 var internal_functions={
-	submitProcess:function() {console.error('unexpected error: submitProcess not implemented');}
-	scriptStarted:function() {console.error('unexpected error: scriptStarted not implemented');}
+	submitProcess:function() {console.error('unexpected error: submitProcess not implemented');},
+	scriptStarted:function() {console.error('unexpected error: scriptStarted not implemented');},
 	scriptFinished:function() {console.error('unexpected error: scriptFinished not implemented');}
 	//getProcessingStatus:function() {console.error('unexpected error: getProcessingStatus not implemented');}
 };
