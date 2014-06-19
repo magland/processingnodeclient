@@ -7,6 +7,9 @@ function create_wisdm_processor(params) {
 	if (processor_type=='bash') {
 		return create_wisdm_processor_bash(params);
 	}
+	else if (processor_type=='node') {
+		return create_wisdm_processor_node(params);
+	}
 	else if ((processor_type=='octave')||(processor_type=='matlab')) {
 		return create_wisdm_processor_octave(params);
 	}
@@ -334,6 +337,7 @@ function create_wisdm_processor_cpp(params) {
 	
 	var headers='';
 	var sources='';
+	var pro_includes='';
 	the_requires.forEach(function(the_require) {
 		var suf=common.get_file_suffix(the_require.path);
 		if ((suf=='h')||(suf=='hpp')) {
@@ -342,6 +346,9 @@ function create_wisdm_processor_cpp(params) {
 		}
 		else if ((suf=='c')||(suf=='cpp')||(suf=='cxx')) {
 			sources+=the_require.path+' ';
+		}
+		else if (suf=='pri') {
+			pro_includes+='include('+the_require.path+')\n';
 		}
 	});
 	
@@ -355,6 +362,7 @@ function create_wisdm_processor_cpp(params) {
 			var using_nii_code='';
 			if (using_nii) using_nii_code='USING_NII=true';
 			txt=replace_all(txt,'$using_nii$',using_nii_code);
+			txt+='\n'+pro_includes;
 		}
 		else if (file=='custom_cpp.cpp') {
 			txt=replace_all(txt,'$includes$',includes_code);
@@ -474,6 +482,55 @@ function create_wisdm_processor_bash(params) {
 		processor_type:params.processor_type,
 		processor_name:params.processor_name,
 		files:[
+			{path:'main.sh',content:main_sh}
+		],
+		input_parameters:input_parameters,
+		input_files:input_files,
+		output_files:output_files
+	};
+	return processor;
+}
+
+function create_wisdm_processor_node(params) {
+	var input_parameters=params.input_parameters||{};
+	var input_files=params.input_files||{};
+	var output_files=params.output_files||{};
+	var the_requires=params.requires||[];
+	
+	var main_js='var fs=require("fs");\n';
+	for (var input_parameter_name in input_parameters) {
+		main_js+="var "+input_parameter_name+"=fs.readFileSync('input_parameters/"+input_parameter_name+".txt','utf8');\n";
+	}
+	for (var input_file_name in input_files) {
+		var input_file=input_files[input_file_name];
+		main_js+="var "+input_file_name+"='input_files/"+input_file_name+"."+(input_file.file_type)+"';\n";
+	}
+	for (var output_file_name in output_files) {
+		var output_file=output_files[output_file_name];
+		main_js+="var "+output_file_name+"='output_files/"+output_file_name+"."+(output_file.file_type)+"';\n";
+	}
+	
+	main_js+='\n\n///////////////////////////\n';
+	main_js+=params.code||'';
+	main_js+='\n///////////////////////////\n\n';
+	
+	the_requires.forEach(function(the_require) {
+		main_js+='\n/* '+the_require.path+'*/\n\n'+the_require.content+'\n\n';
+	});
+	
+	main_js+="fs.writeFileSync('status.txt','finished','utf8');\n";
+	
+	main_sh="node $1/main.js\n";
+	
+	var tmp000=common.extend(true,{},params); //the id will depend on the params
+	delete(tmp000.processor_name); //but don't let the id depend on the name!
+	
+	var processor={
+		processor_id:params.processor_id||compute_sha1(JSON.stringify(tmp000)),
+		processor_type:params.processor_type,
+		processor_name:params.processor_name,
+		files:[
+			{path:'main.js',content:main_js},
 			{path:'main.sh',content:main_sh}
 		],
 		input_parameters:input_parameters,

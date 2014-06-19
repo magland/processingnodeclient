@@ -727,6 +727,7 @@ setTimeout(function() {
 				else {
 					var elapsed=(new Date())-timer;
 					if (elapsed>5000) {
+						console.log ('Timeout while waiting for connection to be accepted.');
 						callback({success:false,error:'Timeout while waiting for connection to be accepted.'});
 						return;
 					}
