@@ -151,7 +151,7 @@ function RunningProcess() {
 			},cb_create_input_parameters,5);
 		}
 		
-		function do_write_input_file(path0,input_file_name,input_file,cb00) {
+		function do_write_input_file(path0,input_file_name,input_file,input_file_type,cb00) {
 			if (input_file.length) {
 				//this must be an array (or list) of input files
 				var path1=path0+'/'+input_file_name;
@@ -164,7 +164,7 @@ function RunningProcess() {
 						var indices=[];
 						for (var ii=0; ii<input_file.length; ii++) indices.push(ii);
 						common.for_each_async(indices,function(ii,cb11) {
-							do_write_input_file(path1,ii,input_file[ii],cb11);
+							do_write_input_file(path1,ii,input_file[ii],input_file_type,cb11);
 						},function(tmp777) {
 							cb00(tmp777);
 						},1);
@@ -172,7 +172,9 @@ function RunningProcess() {
 				});
 			}
 			else {
-				var path=path0+'/'+input_file_name+'.'+input_file.file_type;
+				//try this replacement on 6/19/2014
+				//var path=path0+'/'+input_file_name+'.'+input_file.file_type;
+				var path=path0+'/'+input_file_name+'.'+input_file_type;
 				if (input_file.content) {
 					common.write_text_file(path,input_file.content,function(tmp) {
 						if (!tmp.success) {
@@ -229,8 +231,9 @@ function RunningProcess() {
 			var input_file_names=[];
 			for (var key in input_files) input_file_names.push(key);
 			common.for_each_async(input_file_names,function(input_file_name,cb) {
+				var input_file_type=(m_processor.input_files[input_file_name]||{}).file_type||'unknown'; //try on 6/19/2014
 				var input_file=input_files[input_file_name];
-				do_write_input_file(m_process_working_path+'/input_files',input_file_name,input_file,function(tmp00) {
+				do_write_input_file(m_process_working_path+'/input_files',input_file_name,input_file,input_file_type,function(tmp00) {
 					cb(tmp00);
 				});
 			},cb_create_input_files,5);
