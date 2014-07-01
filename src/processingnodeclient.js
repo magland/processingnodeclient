@@ -364,6 +364,7 @@ function ProcessingNodeClient() {
 		}
 		else if (command=='submitScript') {
 			submit_script(m_node_path,request,function(tmp01) {
+				tmp01.processing_node_id=m_processing_node_id;
 				if (!tmp01.success) {callback(tmp01); return;}
 				if (!m_process_database) {
 					callback({success:false,error:'Unexpected: process database is null.'});
