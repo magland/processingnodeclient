@@ -19,6 +19,7 @@ function ProcessingNodeClient() {
 	this.setProcessingNodeId=function(id) {m_processing_node_id=id;};
 	this.setSecretId=function(id) {m_secret_id=id;};
 	this.setOwner=function(owner) {m_owner=owner;};
+	this.setJobKeys=function(job_keys) {m_job_keys=job_keys;};
 	this.connectToServer=function(host,port,callback) {_connectToServer(host,port,callback);};
 	this.disconnectFromServer=function() {_disconnectFromServer();};
 	this.connectionAccepted=function() {return m_connection_accepted;};
@@ -33,6 +34,7 @@ function ProcessingNodeClient() {
 	var m_socket=null;
 	var m_processing_node_id=null;
 	var m_owner='';
+	var m_job_keys=[];
 	var m_secret_id='';
 	var m_connection_accepted=false;
 	var m_node_path='';
@@ -157,6 +159,7 @@ function ProcessingNodeClient() {
 						processing_node_id:m_processing_node_id,
 						owner:m_owner,
 						secret_id:m_secret_id,
+						job_keys:m_job_keys,
 						access:access
 					});
 				},1000);
@@ -658,6 +661,7 @@ setTimeout(function() {
 	
 	CC.setProcessingNodeId(wisdmconfig.processingnodeclient.node_id);
 	CC.setOwner(wisdmconfig.processingnodeclient.owner||'');
+	CC.setJobKeys(wisdmconfig.processingnodeclient.job_keys||[]);
 	CC.setSecretId(wisdmconfig.processingnodeclient.secret_id||'');
 	CC.setNodePath(wisdmconfig.processingnodeclient.node_path);
 	console.log ('Initializing process database...');
