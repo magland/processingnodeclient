@@ -34,7 +34,6 @@ function check_finished() {
 	else {
 		var elapsed=(new Date())-timer;
 		if (elapsed>60*1000) {
-			console.log('Timeout waiting for axeipr to finish');
 			process.exit(1);
 		}
 		setTimeout(check_finished,10);

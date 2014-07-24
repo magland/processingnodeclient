@@ -57,7 +57,9 @@ function RunningProcess() {
 			return;
 		}
 		
-		var DB=DATABASE(m_process_database_name);
+		var DB;
+		if (m_process_database_name) DB=DATABASE(m_process_database_name);
+		else DB=null;
 		
 		make_directories(function(tmp) {
 			if (!tmp.success) {callback(tmp); return;}
@@ -80,12 +82,14 @@ function RunningProcess() {
 			callback({success:true});
 			
 			var pid=m_spawned_process.pid;
-			DB.setCollection('processes');
-			DB.update({_id:m_process._id},{$set:{pid:pid}},function(err) {
-				if (err) {
-					console.error('Problem setting pid in database: '+err);
-				}
-			});
+			if (DB) {
+				DB.setCollection('processes');
+				DB.update({_id:m_process._id},{$set:{pid:pid}},function(err) {
+					if (err) {
+						console.error('Problem setting pid in database: '+err);
+					}
+				});
+			}
 			
 			m_spawned_process.stdout.on('data',function(data) {
 				m_process_output+=data;
@@ -184,7 +188,7 @@ function RunningProcess() {
 						cb00({success:true});
 					});
 				}
-				else if (input_file.process_id) {
+				else if ((input_file.process_id)&&(DB)) {
 					DB.setCollection('processes');
 					DB.find({_id:input_file.process_id},{},function(err,docs) {
 						if ((err)||(docs.length===0)) {
@@ -220,7 +224,7 @@ function RunningProcess() {
 					});
 				}
 				else {
-					report_error(cb00,'content and process_id are empty.'+JSON.stringify(input_file));
+					report_error(cb00,'content and process_id are empty (or DB is null).'+JSON.stringify(input_file));
 				}
 			}
 		}

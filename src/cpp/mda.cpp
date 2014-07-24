@@ -119,11 +119,12 @@ mda::~mda() {
 #define MDA_TYPE_UINT16 -6
 
 bool mda::load(const QString &fname) {
-	printf("load mda....\n");
+	printf("load mda.... %s\n",fname.toAscii().data());
 	FILE *inf=fopen(fname.toAscii().data(),"rb");
 	if (!inf) return false;
 	qint32 hold_num_dims;
 	qint32 hold_dims[MAX_MDA_DIMS];
+	for (int jj=0; jj<MAX_MDA_DIMS; jj++) hold_dims[jj]=1;
 	if (fread(&hold_num_dims,sizeof(qint32),1,inf)<=0) {
 		fclose(inf);
 		return false;
@@ -162,11 +163,13 @@ bool mda::load(const QString &fname) {
 		fread(&holdval,sizeof(qint32),1,inf);
 		hold_dims[j]=holdval;
 	}
+	printf("data_type=%d\n",data_type);
 	if (data_type==MDA_TYPE_UINT8) {
 		allocateUint8(hold_dims[0],hold_dims[1],hold_dims[2],hold_dims[3]);
 		quint8 *data0=(quint8 *)data();
-		if (fread(data0,num_bytes,d->m_NN,inf)!=d->m_NN) {
-			qWarning() << "Problem reading mda data";
+		long num_bytes_read=fread(data0,num_bytes,d->m_NN,inf);
+		if (num_bytes_read!=d->m_NN) {
+			qWarning() << "Problem reading mda data" << num_bytes_read << d->m_NN;
 			fclose(inf);
 			return false;
 		}
@@ -174,8 +177,9 @@ bool mda::load(const QString &fname) {
 	else if (data_type==MDA_TYPE_FLOAT32) {
 		allocateFloat32(hold_dims[0],hold_dims[1],hold_dims[2],hold_dims[3]);
 		float *data0=(float *)data();
-		if (fread(data0,num_bytes,d->m_NN,inf)!=d->m_NN) {
-			qWarning() << "Problem reading mda data";
+		long num_bytes_read=fread(data0,num_bytes,d->m_NN,inf);
+		if (num_bytes_read!=d->m_NN) {
+			qWarning() << "Problem reading mda data" << num_bytes_read << d->m_NN;
 			fclose(inf);
 			return false;
 		}

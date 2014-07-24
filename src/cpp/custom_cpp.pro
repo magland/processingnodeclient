@@ -9,8 +9,8 @@ DEPENDPATH += .
 HEADERS += $headers$
 SOURCES += custom_cpp.cpp $sources$
 
-HEADERS += textfile.h mda.h qwait.h
-SOURCES += textfile.cpp mda.cpp qwait.cpp
+HEADERS += textfile.h mda.h qwait.h to_list.h
+SOURCES += textfile.cpp mda.cpp qwait.cpp to_list.cpp
 
 #QJSON
 LIBS += -lqjson

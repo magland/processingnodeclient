@@ -255,10 +255,10 @@ function create_wisdm_processor_cpp(params) {
 			initialization_code+="QString "+input_parameter_name+"=read_text_file("+file_name_str+");\n";
 		}
 		else if (input_parameter.parameter_type=='LIST<int>') {
-			//custom_script_m+=input_parameter_name+"=strread("+input_parameter_name+",'%d','delimiter',',');\n";
+			initialization_code+="QList<int> "+input_parameter_name+"=to_int_list(read_text_file("+file_name_str+"));\n";
 		}
 		else if (input_parameter.parameter_type=='LIST<real>') {
-			//custom_script_m+=input_parameter_name+"=strread("+input_parameter_name+",'%f','delimiter',',');\n";
+			initialization_code+="QList<double> "+input_parameter_name+"=to_double_list(read_text_file("+file_name_str+"));\n";
 		}
 		else {
 		}
