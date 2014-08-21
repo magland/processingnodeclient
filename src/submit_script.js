@@ -21,8 +21,9 @@ function submit_script(node_path,request,callback) {
 	var write_script_timer=new Date();
 	write_temporary_script(code,{user_id:request.auth_info.user_id},function(tmp1) {
 		if (tmp1.success) {
+			var elapsed_write_script=(new Date())-write_script_timer;
 			execute_script(tmp1.script_path,function(tmp2) {
-				tmp2.elapsed_write_script=(new Date())-write_script_timer;
+				tmp2.elapsed_write_script=elapsed_write_script;
 				callback(tmp2);
 			});
 		}
