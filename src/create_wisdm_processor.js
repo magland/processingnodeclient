@@ -16,6 +16,9 @@ function create_wisdm_processor(params) {
 	else if (processor_type=='cpp') {
 		return create_wisdm_processor_cpp(params);
 	}
+	else if (processor_type=='python') {
+		return create_wisdm_processor_python(params);
+	}
 	else {
 		throw new Error('Unrecognized processor type: '+processor_type);
 	}
@@ -167,7 +170,9 @@ function create_wisdm_processor_octave(params) {
 	processor_files.push({path:'main.sh',content:main_sh});
 	processor_files.push({path:'custom_script.m',content:custom_script_m});
 	var path0=__dirname+'/octave'; 
+	console.log('__dirname for octave='+__dirname);
 	var files=fs.readdirSync(path0);
+	console.log(files);
 	files.forEach(function(file) {
 		var txt0=fs.readFileSync(path0+'/'+file,'utf8');
 		processor_files.push({path:file,content:txt0});
@@ -201,6 +206,152 @@ function create_wisdm_processor_octave(params) {
 		else {
 			return file_path_str;
 		}
+	}
+}
+
+function create_wisdm_processor_python(params) {
+	var input_parameters=params.input_parameters||{};
+	var input_files=params.input_files||{};
+	var output_files=params.output_files||{};
+	var the_requires=params.requires||[];
+	
+	var main_sh='';
+	main_sh+="python $1/custom_script.py $1 >stdout.txt 2>stderr.txt\n";
+	
+	main_sh+="rc=$?\n";
+	main_sh+="if [[ $rc != 0 ]] ; then\n";
+	main_sh+="  echo \"error: process crashed.\" > status.txt\n";
+	main_sh+="  cat stderr.txt >> status.txt\n";
+	main_sh+="  exit $rc\n";
+	main_sh+="fi\n";
+	main_sh+="cat stderr.txt\n";
+	main_sh+="cat stdout.txt\n";
+	
+	var custom_script_py='';
+	custom_script_py+='import sys\n';
+	custom_script_py+='sys.path.append(sys.argv[1])\n';
+	
+	custom_script_py+='import jfm_utils as utils\n';
+	
+	for (var input_parameter_name in input_parameters) {
+		var input_parameter=input_parameters[input_parameter_name];
+		var file_name_str="'input_parameters/"+input_parameter_name+".txt'";
+		custom_script_py+=input_parameter_name+"=utils.read_text_file("+file_name_str+");\n";
+		if (input_parameter.parameter_type=='int') {
+			custom_script_py+=input_parameter_name+"=int("+input_parameter_name+");\n";
+		}
+		else if (input_parameter.parameter_type=='real') {
+			custom_script_py+=input_parameter_name+"=float("+input_parameter_name+");\n";
+		}
+		else if (input_parameter.parameter_type=='LIST<int>') {
+			custom_script_py+=input_parameter_name+"=utils.string_to_intlist("+input_parameter_name+");\n";
+		}
+		else if (input_parameter.parameter_type=='LIST<real>') {
+			custom_script_py+=input_parameter_name+"=utils.string_to_floatlist("+input_parameter_name+");\n";
+		}
+		else {
+		}
+	}
+	for (var input_file_name in input_files) {
+		var input_file=input_files[input_file_name];
+		
+		if (input_file.file_type.indexOf('LIST<')===0) {
+			/*var ind1=input_file.file_type.indexOf('<');
+			var ind2=input_file.file_type.indexOf('>');
+			if ((ind1<0)||(ind2<0)||(ind2<ind1)) {
+				console.error('Improper input type: '+input_file.file_type);
+			}
+			else {
+				var type0=input_file.file_type.slice(ind1+1,ind2);
+				var length_path_str="'input_files/"+input_file_name+"/length'";
+				var file_path_str="sprintf('input_files/%s/%d.%s','"+input_file_name+"',j_-1,'"+type0+"')";
+				custom_script_py+="disp('reading length');\n";
+				custom_script_py+="len_=floor(str2double(read_text_file("+length_path_str+")));\n";
+				custom_script_py+="disp(len_);\n";
+				custom_script_py+="for j_=1:len_ disp(j_); disp("+file_path_str+"); "+input_file_name+"{j_}="+create_read_file_expression(file_path_str,type0)+"; end;\n";
+			}*/
+		}
+		else {
+			var file_path_str="'input_files/"+input_file_name+"."+(input_file.file_type)+"'";
+			custom_script_py+=input_file_name+"="+file_path_str+";\n";
+		}
+	}
+	for (var output_file_name in output_files) {
+		var output_file=output_files[output_file_name];
+		
+		var file_name_str="'output_files/"+output_file_name+"."+(output_file.file_type)+"'";
+		
+		custom_script_py+=output_file_name+"="+file_name_str+";\n";
+	}
+	
+	var code0=unindent(params.code);
+	
+	custom_script_py+="\n\n############################\n";
+	custom_script_py+=code0;
+	custom_script_py+="\n############################\n\n";
+	
+	/*
+	for (var output_file_name in output_files) {
+		var output_file=output_files[output_file_name];
+		
+		var file_name_str="'output_files/"+output_file_name+"."+(output_file.file_type)+"'";
+		
+		if (output_file.file_type=='mda') {
+			custom_script_py+="writeArray("+file_name_str+","+output_file_name+");\n";
+		}
+		else if (output_file.file_type=='nii') {
+			custom_script_py+="writeNii("+file_name_str+","+output_file_name+");\n";
+		}
+		else {
+			
+		}
+	}
+	*/
+	
+	custom_script_py+="utils.write_text_file('status.txt','finished');";
+	
+	var processor_files=[];
+	processor_files.push({path:'main.sh',content:main_sh});
+	processor_files.push({path:'custom_script.py',content:custom_script_py});
+	console.log('__dirname='+__dirname);
+	var path0=__dirname+'/python'; 
+	var files=fs.readdirSync(path0);
+	files.forEach(function(file) {
+		var txt0=fs.readFileSync(path0+'/'+file,'utf8');
+		processor_files.push({path:file,content:txt0});
+	});
+	the_requires.forEach(function(the_require) {
+		processor_files.push({path:the_require.path,content:the_require.content});
+	});
+	
+	var tmp000=common.extend(true,{},params); //the id will depend on the params
+	delete(tmp000.processor_name); //but don't let the id depend on the name!
+	delete(tmp000.processor_id); //and don't let it depend on the empty processor id field
+	
+	var processor={
+		processor_id:params.processor_id||compute_sha1(JSON.stringify(tmp000)),
+		processor_type:params.processor_type,
+		processor_name:params.processor_name,
+		files:processor_files,
+		input_parameters:input_parameters,
+		input_files:input_files,
+		output_files:output_files
+	};
+	return processor;
+}
+
+function unindent(code) {
+	var lines=code.split('\n');
+	for (var i=0; i<lines.length; i++) {
+		lines[i]=unindent_line(lines[i]);
+	}
+	return lines.join('\n');
+	
+	function unindent_line(line) {
+		if (line[0]=='\t') {
+			line=line.slice(1);
+		}
+		return line;
 	}
 }
 
