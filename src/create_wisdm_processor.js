@@ -231,6 +231,16 @@ function create_wisdm_processor_python(params) {
 	custom_script_py+='import sys\n';
 	custom_script_py+='sys.path.append(sys.argv[1])\n';
 	
+	custom_script_py+='\n';
+	custom_script_py+='##################################################\n';
+	custom_script_py+='#important so we do not attempt to display a window\n';
+	custom_script_py+='#see http://www.astrobetter.com/plotting-to-a-file-in-python/\n';
+	custom_script_py+='import matplotlib\n';
+	custom_script_py+='matplotlib.use(\'Agg\')\n';
+	custom_script_py+='from pylab import *\n';
+	custom_script_py+='##################################################\n';
+	custom_script_py+='\n';
+	
 	custom_script_py+='import jfm_utils as utils\n';
 	
 	for (var input_parameter_name in input_parameters) {
