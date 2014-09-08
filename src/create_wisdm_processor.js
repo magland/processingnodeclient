@@ -31,7 +31,7 @@ function create_wisdm_processor_octave(params) {
 	var the_requires=params.requires||[];
 	var matlab_mode=(params.processor_type=='matlab');
 	var no_auto_inputs=params.no_auto_inputs||false;
-	var no_auto_outputs=params.no_auto_inputs||false;
+	var no_auto_outputs=params.no_auto_outputs||false;
 	
 	var main_sh='';
 	if (matlab_mode) {
@@ -103,10 +103,10 @@ function create_wisdm_processor_octave(params) {
 		
 		var file_name_str="'output_files/"+output_file_name+"."+(output_file.file_type)+"'";
 		
-		if (output_file.file_type=='mda') {
+		if ((output_file.file_type=='mda')&&(!no_auto_outputs)) {
 			//
 		}
-		else if (output_file.file_type=='nii') {
+		else if ((output_file.file_type=='nii')&&(!no_auto_outputs)) {
 			//
 		}
 		else {
