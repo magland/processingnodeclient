@@ -159,6 +159,15 @@ function RunningProcess() {
 			if (input_file.length) {
 				//this must be an array (or list) of input files
 				var path1=path0+'/'+input_file_name;
+				
+				var ind1=input_file_type.indexOf('<');
+				var ind2=input_file_type.indexOf('>');
+				var type0='';
+				if ((ind1>0)&&(ind2>ind1+1))
+					type0=input_file.file_type.slice(ind1+1,ind2);
+				else
+					type0='<problemA>';
+				
 				common.mkdir(path1,function(tmp1) {
 					common.write_text_file(path1+'/length',input_file.length,function(tmp2) {
 						if (!tmp2.success) {
@@ -168,7 +177,7 @@ function RunningProcess() {
 						var indices=[];
 						for (var ii=0; ii<input_file.length; ii++) indices.push(ii);
 						common.for_each_async(indices,function(ii,cb11) {
-							do_write_input_file(path1,ii,input_file[ii],input_file_type,cb11);
+							do_write_input_file(path1,ii,input_file[ii],type0,cb11);
 						},function(tmp777) {
 							cb00(tmp777);
 						},1);
