@@ -30,6 +30,8 @@ function create_wisdm_processor_octave(params) {
 	var output_files=params.output_files||{};
 	var the_requires=params.requires||[];
 	var matlab_mode=(params.processor_type=='matlab');
+	var no_auto_inputs=params.no_auto_inputs||false;
+	var no_auto_outputs=params.no_auto_inputs||false;
 	
 	var main_sh='';
 	if (matlab_mode) {
@@ -121,10 +123,10 @@ function create_wisdm_processor_octave(params) {
 		
 		var file_name_str="'output_files/"+output_file_name+"."+(output_file.file_type)+"'";
 		
-		if (output_file.file_type=='mda') {
+		if ((output_file.file_type=='mda')&&(!no_auto_outputs)) {
 			custom_script_m+="writeArray("+file_name_str+","+output_file_name+");\n";
 		}
-		else if (output_file.file_type=='nii') {
+		else if ((output_file.file_type=='nii')&&(!no_auto_outputs)) {
 			custom_script_m+="writeNii("+file_name_str+","+output_file_name+");\n";
 		}
 		else {
@@ -188,7 +190,7 @@ function create_wisdm_processor_octave(params) {
 	var processor={
 		processor_id:params.processor_id||compute_sha1(JSON.stringify(tmp000)),
 		processor_type:params.processor_type,
-		processor_name:params.processor_name,
+		no_auto_outputs:params.no_auto_outputs,
 		files:processor_files,
 		input_parameters:input_parameters,
 		input_files:input_files,
@@ -197,10 +199,10 @@ function create_wisdm_processor_octave(params) {
 	return processor;
 
 	function create_read_file_expression(file_path_str,file_type) {
-		if (file_type=='mda') {
+		if ((file_type=='mda')&&(!no_auto_inputs)) {
 			return "readArray("+file_path_str+")";
 		}
-		else if (file_type=='nii') {
+		else if ((file_type=='nii')&&(!no_auto_inputs)) {
 			return "readNii("+file_path_str+")";
 		}
 		else {
