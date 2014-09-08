@@ -190,7 +190,7 @@ function create_wisdm_processor_octave(params) {
 	var processor={
 		processor_id:params.processor_id||compute_sha1(JSON.stringify(tmp000)),
 		processor_type:params.processor_type,
-		no_auto_outputs:params.no_auto_outputs,
+		processor_name:params.processor_name,
 		files:processor_files,
 		input_parameters:input_parameters,
 		input_files:input_files,
