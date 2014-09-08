@@ -164,7 +164,7 @@ function RunningProcess() {
 				var ind2=input_file_type.indexOf('>');
 				var type0='';
 				if ((ind1>0)&&(ind2>ind1+1))
-					type0=input_file.file_type.slice(ind1+1,ind2);
+					type0=input_file_type.slice(ind1+1,ind2);
 				else
 					type0='<problemA>';
 				
