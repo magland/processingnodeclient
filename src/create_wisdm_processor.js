@@ -172,9 +172,7 @@ function create_wisdm_processor_octave(params) {
 	processor_files.push({path:'main.sh',content:main_sh});
 	processor_files.push({path:'custom_script.m',content:custom_script_m});
 	var path0=__dirname+'/octave'; 
-	console.log('__dirname for octave='+__dirname);
 	var files=fs.readdirSync(path0);
-	console.log(files);
 	files.forEach(function(file) {
 		var txt0=fs.readFileSync(path0+'/'+file,'utf8');
 		processor_files.push({path:file,content:txt0});
