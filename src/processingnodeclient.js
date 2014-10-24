@@ -581,7 +581,8 @@ function ProcessingNodeClient() {
 		var spawn=require('child_process').spawn;
 		
 		var args=[__dirname+'/read_file_bytes.js',path,bytes];
-		spawned_process=spawn('node',args);
+		var node_executable=wisdmconfig.processingnodeclient.node_executable||'node';
+		spawned_process=spawn(node_executable,args);
 		
 		var buffers=[];
 			
@@ -720,8 +721,8 @@ setTimeout(function() {
 				console.log ('Connected to server ***.');
 			}
 			else {
-				console.log ('Error connecting to server: '+tmp.error);
-				callback({success:false,error:'Error connecting to server: '+tmp.error});
+				console.log ('Error connecting to server: '+JSON.stringify(tmp.error));
+				callback({success:false,error:'Error connecting to server: '+JSON.stringify(tmp.error)});
 				return;
 			}
 			var timer=new Date();
